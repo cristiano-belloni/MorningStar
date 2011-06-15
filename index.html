@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Non Descript Alpha</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <script type="text/javascript" src="http://github.com/notmasteryet/audiodata/raw/master/audiodata.js"></script>
+    <script type="text/javascript" src="../KievII/utilities/Utilities.js"></script>
+    <script type="text/javascript" src="../KievII/graphic_elements/Element.js"></script>
+    <script type="text/javascript" src="../KievII/graphic_elements/UI.js"></script>
+    <script type="text/javascript" src="../KievII/graphic_elements/Background.js"></script>
+    <script type="text/javascript" src="../KievII/graphic_elements/Button.js"></script>
+    <script type="text/javascript" src="../KievII/graphic_elements/RotKnob.js"></script>
+    <script type="text/javascript" src="../KievII/graphic_elements/wrappers/CanvasDraw.js"></script>
+    <script type="text/javascript" src="../KievII/graphic_elements/wrappers/Wrappers.js"></script>
+    <script type="text/javascript" src="audio/ndprocess.js"></script>
+    <script type="text/javascript" src="audio/ADNonDescript.js"></script>
+  </head>
+  <body>
+    <canvas id="plugin" width="963" height="613"></canvas>
+    <script type="text/javascript">
+
+        // This should fix "console not defined" problem.
+        if (typeof console=="undefined"){console={log:function(A){var B=false;if(B){alert(A)}}}}
+
+        /* INIT */
+        var plugin_canvas = document.getElementById("plugin");
+        var CWrapper = K2WRAPPER.createWrapper("CANVAS_WRAPPER",
+                                                    {canvas: plugin_canvas}
+                                                    );
+        var ui = new UI (plugin_canvas, CWrapper, {breakOnFirstEvent: true});
+
+        var steps_array = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16"],
+            imageResources = [];
+
+        var mulArgs = { multipleImages: [],
+                        onComplete: afterLoading,
+                        onError: logError
+        }
+
+        // Load keys
+
+        for (var i = 0; i < steps_array.length; i += 1) {
+            imageResources = ["Keys/" + steps_array[i] + "_inactive.png", "Keys/" + steps_array[i] + "_active.png", "Keys/" + steps_array[i] + "_playing.png"];
+            mulArgs.multipleImages.push ({ID: steps_array[i] + "_loader", imageNames : imageResources});
+        }
+        
+        
+        // Load bypass / play button
+        imageResources = ["PlaybackControls/play_inactive.png", "PlaybackControls/play_active.png"];
+        mulArgs.multipleImages.push ({ID: "play_loader", imageNames : imageResources});
+        imageResources = ["PlaybackControls/stop_inactive.png", "PlaybackControls/stop_active.png"];
+        mulArgs.multipleImages.push ({ID: "stop_loader", imageNames : imageResources});
+        imageResources = ["PlaybackControls/repeat_inactive.png", "PlaybackControls/repeat_active.png"];
+        mulArgs.multipleImages.push ({ID: "restart_loader", imageNames : imageResources});
+        
+        // Load piano roll parts
+        // Semitone button
+        imageResources = ["PianoRoll/semitone_inactive.png", "PianoRoll/semitone_active.png"];
+        mulArgs.multipleImages.push ({ID: "semitone_loader", imageNames : imageResources});
+        // Tone with two semitones
+        imageResources = ["PianoRoll/tone_both_inactive.png", "PianoRoll/tone_both_active.png"];
+        mulArgs.multipleImages.push ({ID: "tone_both_loader", imageNames : imageResources});
+        // Tone with a left semitone
+        imageResources = ["PianoRoll/tone_left_inactive.png", "PianoRoll/tone_left_active.png"];
+        mulArgs.multipleImages.push ({ID: "tone_left_loader", imageNames : imageResources});
+        // Tone with a right semitone
+        imageResources = ["PianoRoll/tone_right_inactive.png", "PianoRoll/tone_right_active.png"];
+        mulArgs.multipleImages.push ({ID: "tone_right_loader", imageNames : imageResources});
+
+        // Load instrKnobs rotary part
+        mulArgs.multipleImages.push ({ID: "black_knob_loader", imageNames : ["Knobs/Black_small.png"]});
+        mulArgs.multipleImages.push ({ID: "white_knob_loader", imageNames : ["Knobs/White_big.png"]});
+
+        // Load bg
+        mulArgs.multipleImages.push ({ID: "background_loader", imageNames : ["ND_deck_1.png"]});
+                     
+        var mImageLoader = new loadMultipleImages (mulArgs);
+
+        function logError (status) {
+            console.log(status);
+        }
+
+        function afterLoading (loaders) {
+      
+            var key_initial_offset = 67,
+                key_distance = 55;
+
+            //TODO window will become this or BEESWAX
+            background = undefined,
+            keys = [],
+            instrKnobs = [],
+            globalKnobs = [],
+            pianoRollKeys = [],
+            bpButtons = {};
+
+            /* BACKGROUND */
+            
+            var backgroundArgs = {
+                ID: 'background',
+                top: 0,
+                left: 0,
+                image: loaders["background_loader"].images[0],
+                preserveBg: false
+                }
+
+            // TODO window will become this or Beeswax
+            window.background = new Background (backgroundArgs);
+            ui.addElement(window.background, {zIndex: 1});
+
+            /* KEYS */
+
+            var keyArgs = {
+                /*ID: "note",*/
+                left:  0,
+                top: 448,
+                preserveBg: false,
+                isClickable: true
+            };
+
+            keyArgs.onValueSet = function () {
+                var that = this;
+                return function (slot, value, ID) {
+                    var note = ID;
+                    if (value === 0) {
+                        console.log ("Unset step number " + ID);
+                    }
+                    else if (value === 1) {
+                        console.log ("Set step number " + ID);
+                    }
+                    else {
+                        //throw!
+                    }
+                    window.ui.refresh();
+                };
+            }();
+
+            for (var i = 0; i < steps_array.length; i += 1) {
+                keyArgs.ID = i;
+                keyArgs.imagesArray = loaders[steps_array[i] + "_loader"].images,
+                keyArgs.left = key_initial_offset + i * key_distance;
+                // TODO window will become this or Beeswax
+                window.keys[i] = new Button(keyArgs);
+                window.keys[i].setStatesNumber(2);
+                ui.addElement(window.keys[i], {zIndex: 5, completeRepaint: true});
+            }
+
+            // BYPASS / PLAY / REPEAT BUTTONS
+
+            var bpCallback = function ()  {
+                var that = this;
+                return function (slot, value, elName) {
+                    if (value === 1) {
+                        console.log ("Stopping the sequencer");
+                    }
+                    else if (value === 0) {
+                        console.log ("Starting the sequencer");
+                    }
+                    else {
+                        // throw
+                        console.log ("Shouldn't be here!!");
+                    }
+                    ui.refresh();
+                }
+            }
+
+            var rsCallback = function ()  {
+                var that = this;
+                return function (slot, value, elName) {
+                    if (value === 1) {
+                        console.log ("Restart is ON");
+                    }
+                    else if (value === 0) {
+                        console.log ("Restart is OFF");
+                    }
+                    else {
+                        // throw
+                        console.log ("Shouldn't be here!!");
+                    }
+                    ui.refresh();
+                }
+            }
+
+            var bpArgs = {
+                top: 153,
+                preserveBg: false,
+                isClickable: true
+            };
+
+            bpArgs.ID = "PlayButton";
+            bpArgs.left = 260;
+            bpArgs.imagesArray = loaders["play_loader"].images;
+            window.bpButtons['play'] = new Button(bpArgs);
+            bpArgs.ID = "StopButton";
+            bpArgs.left = 179;
+            bpArgs.imagesArray = loaders["stop_loader"].images;
+            bpArgs.onValueSet = bpCallback();
+            window.bpButtons['stop'] = new Button(bpArgs);
+            bpArgs.ID = "RestartButton";
+            bpArgs.left = 343;
+            bpArgs.imagesArray = loaders["restart_loader"].images;
+            bpArgs.onValueSet = rsCallback();
+            window.bpButtons['restart'] = new Button(bpArgs);
+
+            ui.addElement(window.bpButtons['play'], {zIndex: 3});
+            ui.addElement(window.bpButtons['stop'], {zIndex: 3});
+            ui.addElement(window.bpButtons['restart'], {zIndex: 3});
+
+            // Cascading here; since the buttons are mutually excusive, we will
+            // need only a callback function.
+            ui.connectSlots ("PlayButton", "buttonvalue", "StopButton", "buttonvalue", {callback: function (value) {return 1-value;}});
+            ui.connectSlots ("StopButton", "buttonvalue", "PlayButton", "buttonvalue", {callback: function (value) {return 1-value;}});
+
+            // Start with play = off
+            ui.setValue('PlayButton', 'buttonvalue', 0);
+
+
+            /* KNOBS */
+
+            // INSTRUMENT (WHITE) KNOBS
+
+            var  instr_knob_names = [{ID: "Resonance", top: 255, left: 820},
+                                     {ID: "Release", top: 61, left: 820},
+                                     {ID: "Cutoff",  top: 255, left: 641},
+                                     {ID: "Portamento", top: 61, left: 641},
+                                     {ID: "Envelope", top: 61, left: 463}];
+
+            var instrKnobArgs = {
+                image : loaders["white_knob_loader"].images[0],
+                sensitivity : 5000,
+                isClickable: true,
+                preserveBg: false,
+                initAngValue: 270,
+                angSteps : 127,
+                startAngValue: 218,
+                stopAngValue : 501
+            };
+
+            instrKnobArgs.onValueSet = function () {
+                var that = this;
+                return function (slot, value, ID) {
+                    // Interpolate the instrKnobs value in the integer range [0,127]
+                    var interpolated_value = Math.round(value * 127);
+                    var functionName = "set" + ID;
+                    console.log ("Calling ADNonDescript[" + functionName + "] with value " + value + "-->" + interpolated_value);
+                    ADNonDescript[functionName](interpolated_value);
+                    window.ui.refresh();
+                    
+                };
+            }();
+
+            for (var i = 0; i < instr_knob_names.length; i ++) {
+                instrKnobArgs.ID = instr_knob_names[i].ID;
+                instrKnobArgs.top = instr_knob_names[i].top;
+                instrKnobArgs.left = instr_knob_names[i].left;
+                instrKnobs[i] = new RotKnob(instrKnobArgs);
+                ui.addElement(instrKnobs[i],  {zIndex: 10});
+            }
+
+            // GLOBAL (BLACK) KNOBS
+
+            var  global_knob_names = [{ID: "Distortion", top: 238, left: 448},
+                                      {ID: "Reverb", top: 240, left: 530},
+                                      {ID: "Tempo", top: 327, left: 449},
+                                      {ID: "Volume", top: 327, left: 527},
+                                      {ID: "Velocity", top: 155, left: 78}
+                                      ];
+
+            var globalKnobArgs = {
+                image : loaders["black_knob_loader"].images[0],
+                sensitivity : 5000,
+                isClickable: true,
+                initAngValue: 270,
+                angSteps : 127,
+                startAngValue: 218,
+                stopAngValue : 501
+            };
+
+            globalKnobArgs.onValueSet = function () {
+                var that = this;
+                return function (slot, value, ID) {
+                    var knobname = slot;
+                    // Interpolate the globalKnobs value in the integer range [0,127]
+                    var interpolated_value = Math.round(value * 127);
+                    var functionName = "set" + ID;
+                    console.log ("Calling ADBeesWax[" + functionName + "] with value " + value + "-->" + interpolated_value);
+                    //ADBeesWax[functionName](interpolated_value);*/
+                    window.ui.refresh();
+
+                };
+            }();
+
+            for (var i = 0; i < global_knob_names.length; i ++) {
+                globalKnobArgs.ID = global_knob_names[i].ID;
+                globalKnobArgs.top = global_knob_names[i].top;
+                globalKnobArgs.left = global_knob_names[i].left;
+                globalKnobs[i] = new RotKnob(globalKnobArgs);
+                ui.addElement(globalKnobs[i],  {zIndex: 10});
+            }
+
+            // PIANO ROLL
+
+            var pianoCallback = function ()  {
+                var that = this;
+                return function (slot, value, elName) {
+                    noteNumber = parseInt(elName.split('_')[0], 10) - 33;
+                    velocity = 63;
+
+                    if (value === 1) {
+                        // Set the others to off.
+                        for (var i = 0; i < window.pianoRollKeys.length; i+=1) {
+                            if (window.pianoRollKeys[i].ID !== elName) {
+                                if (window.pianoRollKeys[i].getValue ("buttonvalue") === 1) {
+                                    // Turn it off visually using the UI. Do not invoke callbacks.
+                                    ui.setValue(window.pianoRollKeys[i].ID, 'buttonvalue', 0, undefined, false);
+                                    // Turn it off manually, because callback is not invoked again.
+                                    var offNumber = parseInt(window.pianoRollKeys[i].ID.split('_')[0],10) - 33;
+                                    ADNonDescript.noteOff(offNumber, velocity);
+                                }
+                            }
+                        }
+                        console.log ("Note ", elName, " number ", noteNumber, " is ON!");
+                        ADNonDescript.noteOn(noteNumber, velocity);
+                    }
+                    else if (value === 0) {
+                        console.log ("Note ", elName, " number ", noteNumber, " is OFF!");
+                        ADNonDescript.noteOff(noteNumber, velocity);
+                    }
+                    else {
+                        // throw
+                        console.log ("Shouldn't be here!!");
+                    }
+                    ui.refresh();
+                }
+            }
+
+            var  pianoKeyData = [
+                { ID: "0_C",   image_ld: "tone_right_loader", left: 73 },
+                { ID: "1_C#",  image_ld: "semitone_loader", left: 91 },
+                { ID: "2_D",   image_ld: "tone_both_loader", left: 97 },
+                { ID: "3_D#",  image_ld: "semitone_loader",  left: 115 },
+                { ID: "4_E",   image_ld: "tone_left_loader", left: 121 },
+                { ID: "5_F",   image_ld: "tone_right_loader", left: 144 },
+                { ID: "6_F#",  image_ld: "semitone_loader", left: 162 },
+                { ID: "7_G",   image_ld: "tone_both_loader", left: 168 },
+                { ID: "8_G#",  image_ld: "semitone_loader", left: 186 },
+                { ID: "9_A",   image_ld: "tone_both_loader", left: 192 },
+                { ID: "10_A#", image_ld: "semitone_loader", left: 210 },
+                { ID: "11_B",  image_ld: "tone_left_loader", left: 216 },
+                { ID: "12_C",  image_ld: "tone_right_loader", left: 239 },
+                { ID: "13_C#", image_ld: "semitone_loader", left: 257},
+                { ID: "14_D",  image_ld: "tone_both_loader", left: 263 },
+                { ID: "15_D#", image_ld: "semitone_loader", left: 280 },
+                { ID: "16_E",  image_ld: "tone_left_loader", left: 286 },
+                { ID: "17_F",  image_ld: "tone_right_loader", left: 310 },
+                { ID: "18_F#", image_ld: "semitone_loader", left: 328 },
+                { ID: "19_G",  image_ld: "tone_both_loader", left: 334 },
+                { ID: "20_G#", image_ld: "semitone_loader", left: 352 },
+                { ID: "21_A",  image_ld: "tone_both_loader", left: 358 },
+                { ID: "22_A#", image_ld: "semitone_loader", left: 376 },
+                { ID: "23_B",  image_ld: "tone_left_loader", left: 382 },
+            ];
+
+            var pianoKeyArgs = {
+                top: 276,
+                preserveBg: false,
+                isClickable: true,
+                onValueSet: pianoCallback()
+            };
+
+            var pianoZIndex;
+
+            for (var i = 0; i < pianoKeyData.length; i += 1) {
+                pianoZIndex = 11;
+                pianoKeyArgs.ID = pianoKeyData[i].ID;
+                pianoKeyArgs.left = pianoKeyData[i].left;
+                pianoKeyArgs.imagesArray = loaders[pianoKeyData[i].image_ld].images;
+                if (pianoKeyData[i].image_ld === "semitone_loader") {
+                    pianoZIndex = 12;
+                }
+
+                window.pianoRollKeys[i] = new Button(pianoKeyArgs);
+                ui.addElement(window.pianoRollKeys[i], {zIndex: pianoZIndex});
+            }
+
+
+            //debugger;
+            var ADNonDescript = new AudioDataNonDescript();
+            ADNonDescript.init({sampleRate: 44100});
+            ADNonDescript.setBypass (false);
+
+            ui.refresh();
+
+        }
+
+
+    </script>
+  </body>
+</html>
