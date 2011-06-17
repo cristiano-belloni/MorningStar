@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Non Descript Alpha</title>
+    <title>Morning Star Synth</title>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <script type="text/javascript" src="http://github.com/notmasteryet/audiodata/raw/master/audiodata.js"></script>
     <script type="text/javascript" src="../KievII/utilities/Utilities.js"></script>
@@ -43,6 +43,10 @@
             imageResources = ["Keys/" + steps_array[i] + "_inactive.png", "Keys/" + steps_array[i] + "_active.png", "Keys/" + steps_array[i] + "_playing.png"];
             mulArgs.multipleImages.push ({ID: steps_array[i] + "_loader", imageNames : imageResources});
         }
+
+        // Load key highlight
+        imageResources = ["Keys/key_highlight.png"];
+        mulArgs.multipleImages.push ({ID: "highlight_loader", imageNames : imageResources});
         
         
         // Load bypass / play button
@@ -88,10 +92,12 @@
             //TODO window will become this or BEESWAX
             background = undefined,
             keys = [],
+            highlights = [],
             instrKnobs = [],
             globalKnobs = [],
-            pianoRollKeys = [],
+            pianoRollKeys = {},
             bpButtons = {};
+            var currentKey = 0;
 
             /* BACKGROUND */
             
@@ -99,8 +105,7 @@
                 ID: 'background',
                 top: 0,
                 left: 0,
-                image: loaders["background_loader"].images[0],
-                preserveBg: false
+                image: loaders["background_loader"].images[0]
                 }
 
             // TODO window will become this or Beeswax
@@ -108,6 +113,12 @@
             ui.addElement(window.background, {zIndex: 1});
 
             /* KEYS */
+
+            var highlightArgs = {
+                left: 0,
+                top: 445,
+                image: loaders["highlight_loader"].images[0]
+                }
 
             var keyArgs = {
                 /*ID: "note",*/
@@ -120,7 +131,7 @@
             keyArgs.onValueSet = function () {
                 var that = this;
                 return function (slot, value, ID) {
-                    var note = ID;
+                    var note = parseInt(ID, 10);
                     if (value === 0) {
                         console.log ("Unset step number " + ID);
                     }
@@ -130,6 +141,18 @@
                     else {
                         //throw!
                     }
+                    if (currentKey !== note) {
+                        // currentKey has changed. Set the current piano roll as hidden,
+                        // and the new piano roll as visible
+                        for (var i = 0; i < window.pianoRollKeys[currentKey].length; i += 1) {
+                            ui.setVisible(i + '_' + currentKey, false);
+                            ui.setVisible(i + '_' + note, true);
+                        }
+                        ui.setVisible(currentKey + '_hl', false);
+                        ui.setVisible(note + '_hl', true);
+                        currentKey = note;
+
+                    }
                     window.ui.refresh();
                 };
             }();
@@ -138,10 +161,20 @@
                 keyArgs.ID = i;
                 keyArgs.imagesArray = loaders[steps_array[i] + "_loader"].images,
                 keyArgs.left = key_initial_offset + i * key_distance;
+
+                highlightArgs.ID = i + '_hl';
+                highlightArgs.left = keyArgs.left + 1;
                 // TODO window will become this or Beeswax
                 window.keys[i] = new Button(keyArgs);
                 window.keys[i].setStatesNumber(2);
-                ui.addElement(window.keys[i], {zIndex: 5, completeRepaint: true});
+                window.highlights[i] = new Background(highlightArgs);
+
+                ui.addElement(window.keys[i], {zIndex: 5});
+                ui.addElement(window.highlights[i], {zIndex: 10});
+
+                if (i !== currentKey) {
+                    ui.setVisible(highlightArgs.ID, false);
+                }
             }
 
             // BYPASS / PLAY / REPEAT BUTTONS
@@ -302,27 +335,32 @@
             var pianoCallback = function ()  {
                 var that = this;
                 return function (slot, value, elName) {
-                    noteNumber = parseInt(elName.split('_')[0], 10) - 33;
-                    velocity = 63;
+                    var noteNumber = parseInt(elName.split('_')[0], 10) - 33;
+                    var keySelected = parseInt(elName.split('_')[1], 10);
+                    if (currentKey !== keySelected) {
+                        // throw
+                    }
+                    var velocity = 63;
 
                     if (value === 1) {
                         // Set the others to off.
-                        for (var i = 0; i < window.pianoRollKeys.length; i+=1) {
-                            if (window.pianoRollKeys[i].ID !== elName) {
-                                if (window.pianoRollKeys[i].getValue ("buttonvalue") === 1) {
+                        for (var i = 0; i < window.pianoRollKeys[keySelected].length; i+=1) {
+                            if (window.pianoRollKeys[keySelected][i].ID !== elName) {
+                                if (window.pianoRollKeys[keySelected][i].getValue ("buttonvalue") === 1) {
                                     // Turn it off visually using the UI. Do not invoke callbacks.
-                                    ui.setValue(window.pianoRollKeys[i].ID, 'buttonvalue', 0, undefined, false);
+                                    ui.setValue(window.pianoRollKeys[keySelected][i].ID, 'buttonvalue', 0, undefined, false);
                                     // Turn it off manually, because callback is not invoked again.
-                                    var offNumber = parseInt(window.pianoRollKeys[i].ID.split('_')[0],10) - 33;
+                                    var offNumber = parseInt(window.pianoRollKeys[keySelected][i].ID.split('_')[0],10) - 33;
+                                    console.log ("Note ", elName, " number ", noteNumber, " for key ", keySelected, " is OFF!");
                                     ADNonDescript.noteOff(offNumber, velocity);
                                 }
                             }
                         }
-                        console.log ("Note ", elName, " number ", noteNumber, " is ON!");
+                        console.log ("Note ", elName, " number ", noteNumber, " for key ", keySelected, " is ON!");
                         ADNonDescript.noteOn(noteNumber, velocity);
                     }
                     else if (value === 0) {
-                        console.log ("Note ", elName, " number ", noteNumber, " is OFF!");
+                        console.log ("Note ", elName, " number ", noteNumber, " for key ", keySelected, " is OFF!");
                         ADNonDescript.noteOff(noteNumber, velocity);
                     }
                     else {
@@ -334,30 +372,30 @@
             }
 
             var  pianoKeyData = [
-                { ID: "0_C",   image_ld: "tone_right_loader", left: 73 },
-                { ID: "1_C#",  image_ld: "semitone_loader", left: 91 },
-                { ID: "2_D",   image_ld: "tone_both_loader", left: 97 },
-                { ID: "3_D#",  image_ld: "semitone_loader",  left: 115 },
-                { ID: "4_E",   image_ld: "tone_left_loader", left: 121 },
-                { ID: "5_F",   image_ld: "tone_right_loader", left: 144 },
-                { ID: "6_F#",  image_ld: "semitone_loader", left: 162 },
-                { ID: "7_G",   image_ld: "tone_both_loader", left: 168 },
-                { ID: "8_G#",  image_ld: "semitone_loader", left: 186 },
-                { ID: "9_A",   image_ld: "tone_both_loader", left: 192 },
-                { ID: "10_A#", image_ld: "semitone_loader", left: 210 },
-                { ID: "11_B",  image_ld: "tone_left_loader", left: 216 },
-                { ID: "12_C",  image_ld: "tone_right_loader", left: 239 },
-                { ID: "13_C#", image_ld: "semitone_loader", left: 257},
-                { ID: "14_D",  image_ld: "tone_both_loader", left: 263 },
-                { ID: "15_D#", image_ld: "semitone_loader", left: 280 },
-                { ID: "16_E",  image_ld: "tone_left_loader", left: 286 },
-                { ID: "17_F",  image_ld: "tone_right_loader", left: 310 },
-                { ID: "18_F#", image_ld: "semitone_loader", left: 328 },
-                { ID: "19_G",  image_ld: "tone_both_loader", left: 334 },
-                { ID: "20_G#", image_ld: "semitone_loader", left: 352 },
-                { ID: "21_A",  image_ld: "tone_both_loader", left: 358 },
-                { ID: "22_A#", image_ld: "semitone_loader", left: 376 },
-                { ID: "23_B",  image_ld: "tone_left_loader", left: 382 },
+                { ID: "0",   image_ld: "tone_right_loader", left: 73 },
+                { ID: "1",  image_ld: "semitone_loader", left: 91 },
+                { ID: "2",   image_ld: "tone_both_loader", left: 97 },
+                { ID: "3",  image_ld: "semitone_loader",  left: 115 },
+                { ID: "4",   image_ld: "tone_left_loader", left: 121 },
+                { ID: "5",   image_ld: "tone_right_loader", left: 144 },
+                { ID: "6",  image_ld: "semitone_loader", left: 162 },
+                { ID: "7",   image_ld: "tone_both_loader", left: 168 },
+                { ID: "8",  image_ld: "semitone_loader", left: 186 },
+                { ID: "9",   image_ld: "tone_both_loader", left: 192 },
+                { ID: "10", image_ld: "semitone_loader", left: 210 },
+                { ID: "11",  image_ld: "tone_left_loader", left: 216 },
+                { ID: "12",  image_ld: "tone_right_loader", left: 239 },
+                { ID: "13", image_ld: "semitone_loader", left: 257},
+                { ID: "14",  image_ld: "tone_both_loader", left: 263 },
+                { ID: "15", image_ld: "semitone_loader", left: 280 },
+                { ID: "16",  image_ld: "tone_left_loader", left: 286 },
+                { ID: "17",  image_ld: "tone_right_loader", left: 310 },
+                { ID: "18", image_ld: "semitone_loader", left: 328 },
+                { ID: "19",  image_ld: "tone_both_loader", left: 334 },
+                { ID: "20", image_ld: "semitone_loader", left: 352 },
+                { ID: "21",  image_ld: "tone_both_loader", left: 358 },
+                { ID: "22", image_ld: "semitone_loader", left: 376 },
+                { ID: "23",  image_ld: "tone_left_loader", left: 382 },
             ];
 
             var pianoKeyArgs = {
@@ -368,18 +406,27 @@
             };
 
             var pianoZIndex;
+            
+            for (var k = 0; k < window.keys.length; k += 1) {
+                for (var i = 0; i < pianoKeyData.length; i += 1) {
+                    pianoZIndex = 11;
+                    pianoKeyArgs.ID = pianoKeyData[i].ID + "_" + k;
+                    pianoKeyArgs.left = pianoKeyData[i].left;
+                    pianoKeyArgs.imagesArray = loaders[pianoKeyData[i].image_ld].images;
+                    if (pianoKeyData[i].image_ld === "semitone_loader") {
+                        pianoZIndex = 12;
+                    }
+                    
+                    if (window.pianoRollKeys[k] === undefined) {
+                        window.pianoRollKeys[k] = [];
+                    }
 
-            for (var i = 0; i < pianoKeyData.length; i += 1) {
-                pianoZIndex = 11;
-                pianoKeyArgs.ID = pianoKeyData[i].ID;
-                pianoKeyArgs.left = pianoKeyData[i].left;
-                pianoKeyArgs.imagesArray = loaders[pianoKeyData[i].image_ld].images;
-                if (pianoKeyData[i].image_ld === "semitone_loader") {
-                    pianoZIndex = 12;
+                    window.pianoRollKeys[k].push(new Button(pianoKeyArgs));
+                    ui.addElement(window.pianoRollKeys[k][i], {zIndex: pianoZIndex});
+                    if (k !== currentKey) {
+                        ui.setVisible(pianoKeyArgs.ID, false);
+                    }
                 }
-
-                window.pianoRollKeys[i] = new Button(pianoKeyArgs);
-                ui.addElement(window.pianoRollKeys[i], {zIndex: pianoZIndex});
             }
 
 
