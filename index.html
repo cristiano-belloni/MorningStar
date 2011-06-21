@@ -21,440 +21,468 @@
 
         // This should fix "console not defined" problem.
         if (typeof console=="undefined"){console={log:function(A){var B=false;if(B){alert(A)}}}}
-
-        /* INIT */
-        var plugin_canvas = document.getElementById("plugin");
-        var CWrapper = K2WRAPPER.createWrapper("CANVAS_WRAPPER",
-                                                    {canvas: plugin_canvas}
-                                                    );
-        var ui = new UI (plugin_canvas, CWrapper, {breakOnFirstEvent: true});
-
-        var steps_array = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16"],
-            imageResources = [];
-
-        var mulArgs = { multipleImages: [],
-                        onComplete: afterLoading,
-                        onError: logError
-        }
-
-        // Load keys
-
-        for (var i = 0; i < steps_array.length; i += 1) {
-            imageResources = ["Keys/" + steps_array[i] + "_inactive.png", "Keys/" + steps_array[i] + "_active.png", "Keys/" + steps_array[i] + "_playing.png"];
-            mulArgs.multipleImages.push ({ID: steps_array[i] + "_loader", imageNames : imageResources});
-        }
-
-        // Load key highlight
-        imageResources = ["Keys/key_highlight.png"];
-        mulArgs.multipleImages.push ({ID: "highlight_loader", imageNames : imageResources});
         
-        
-        // Load bypass / play button
-        imageResources = ["PlaybackControls/play_inactive.png", "PlaybackControls/play_active.png"];
-        mulArgs.multipleImages.push ({ID: "play_loader", imageNames : imageResources});
-        imageResources = ["PlaybackControls/stop_inactive.png", "PlaybackControls/stop_active.png"];
-        mulArgs.multipleImages.push ({ID: "stop_loader", imageNames : imageResources});
-        imageResources = ["PlaybackControls/repeat_inactive.png", "PlaybackControls/repeat_active.png"];
-        mulArgs.multipleImages.push ({ID: "restart_loader", imageNames : imageResources});
-        
-        // Load piano roll parts
-        // Semitone button
-        imageResources = ["PianoRoll/semitone_inactive.png", "PianoRoll/semitone_active.png"];
-        mulArgs.multipleImages.push ({ID: "semitone_loader", imageNames : imageResources});
-        // Tone with two semitones
-        imageResources = ["PianoRoll/tone_both_inactive.png", "PianoRoll/tone_both_active.png"];
-        mulArgs.multipleImages.push ({ID: "tone_both_loader", imageNames : imageResources});
-        // Tone with a left semitone
-        imageResources = ["PianoRoll/tone_left_inactive.png", "PianoRoll/tone_left_active.png"];
-        mulArgs.multipleImages.push ({ID: "tone_left_loader", imageNames : imageResources});
-        // Tone with a right semitone
-        imageResources = ["PianoRoll/tone_right_inactive.png", "PianoRoll/tone_right_active.png"];
-        mulArgs.multipleImages.push ({ID: "tone_right_loader", imageNames : imageResources});
+        var MORNINGSTAR = {};
 
-        // Load instrKnobs rotary part
-        mulArgs.multipleImages.push ({ID: "black_knob_loader", imageNames : ["Knobs/Black_small.png"]});
-        mulArgs.multipleImages.push ({ID: "white_knob_loader", imageNames : ["Knobs/White_big.png"]});
-
-        // Load bg
-        mulArgs.multipleImages.push ({ID: "background_loader", imageNames : ["ND_deck_1.png"]});
-                     
-        var mImageLoader = new loadMultipleImages (mulArgs);
-
-        function logError (status) {
+        MORNINGSTAR.logError = function (status) {
             console.log(status);
         }
-
-        function afterLoading (loaders) {
-      
-            var key_initial_offset = 67,
-                key_distance = 55;
-
-            //TODO window will become this or BEESWAX
-            background = undefined,
-            keys = [],
-            highlights = [],
-            instrKnobs = [],
-            globalKnobs = [],
-            pianoRollKeys = {},
-            bpButtons = {};
-            var currentKey = 0;
-
-            /* BACKGROUND */
-            
-            var backgroundArgs = {
-                ID: 'background',
-                top: 0,
-                left: 0,
-                image: loaders["background_loader"].images[0]
-                }
-
-            // TODO window will become this or MorningStar
-            window.background = new Background (backgroundArgs);
-            ui.addElement(window.background, {zIndex: 1});
-
-            /* KEYS */
-
-            var highlightArgs = {
-                left: 0,
-                top: 445,
-                image: loaders["highlight_loader"].images[0]
-                }
-
-            var keyArgs = {
-                /*ID: "note",*/
-                left:  0,
-                top: 447,
-                preserveBg: false,
-                isClickable: true
-            };
-
-            keyArgs.onValueSet = function () {
-                var that = this;
-                return function (slot, value, ID) {
-                    var note = parseInt(ID, 10);
-                    if (value === 0) {
-                        console.log ("Unset step number " + ID);
-                    }
-                    else if (value === 1) {
-                        console.log ("Set step number " + ID);
-                    }
-                    else {
-                        //throw!
-                    }
-                    if (currentKey !== note) {
-                        // currentKey has changed. 
-                        // If a note is on, it shall be off in the synth (but still on visually).
-                        for (var i = 0; i < window.pianoRollKeys[currentKey].length; i+=1) {
-                            if (window.pianoRollKeys[currentKey][i].getValue ("buttonvalue") === 1) {
-                               ADNonDescript.noteOff();
-                            }
-                        }
-                         
-                        // Set the current piano roll as hidden,
-                        // and the new piano roll as visible
-                        for (var i = 0; i < window.pianoRollKeys[currentKey].length; i += 1) {
-                            ui.setVisible(i + '_' + currentKey, false);
-                            ui.setVisible(i + '_' + note, true);
-                        }
-                        ui.setVisible(currentKey + '_hl', false);
-                        ui.setVisible(note + '_hl', true);
-                        currentKey = note;
-
-                    }
-                    window.ui.refresh();
-                };
-            }();
-
-            for (var i = 0; i < steps_array.length; i += 1) {
-                keyArgs.ID = i;
-                keyArgs.imagesArray = loaders[steps_array[i] + "_loader"].images,
-                keyArgs.left = key_initial_offset + i * key_distance;
-
-                highlightArgs.ID = i + '_hl';
-                highlightArgs.left = keyArgs.left + 1;
-                // TODO window will become this or Beeswax
-                window.keys[i] = new Button(keyArgs);
-                window.keys[i].setStatesNumber(2);
-                window.highlights[i] = new Background(highlightArgs);
-
-                ui.addElement(window.keys[i], {zIndex: 5});
-                ui.addElement(window.highlights[i], {zIndex: 10});
-
-                if (i !== currentKey) {
-                    ui.setVisible(highlightArgs.ID, false);
-                }
-            }
-
-            // BYPASS / PLAY / REPEAT BUTTONS
-
-            var bpCallback = function ()  {
-                var that = this;
-                return function (slot, value, elName) {
-                    if (value === 1) {
-                        console.log ("Stopping the sequencer");
-                    }
-                    else if (value === 0) {
-                        console.log ("Starting the sequencer");
-                        // Sequencer is starting, set unclickable most of the controls.
-                        // this.setUnclickableStart();
-                        // Set keys as three-state.
-                        // this.initKeysSeqStart();
-                        // window.keys[i].setStatesNumber(3);
-                        // Start the timers
-                        // this.sequencerTimersStart();
-                        
-                        
-                    }
-                    else {
-                        // throw
-                        console.log ("Shouldn't be here!!");
-                    }
-                    ui.refresh();
-                }
-            }
-
-            var rsCallback = function ()  {
-                var that = this;
-                return function (slot, value, elName) {
-                    if (value === 1) {
-                        console.log ("Restart is ON");
-                    }
-                    else if (value === 0) {
-                        console.log ("Restart is OFF");
-                    }
-                    else {
-                        // throw
-                        console.log ("Shouldn't be here!!");
-                    }
-                    ui.refresh();
-                }
-            }
-
-            var bpArgs = {
-                top: 153,
-                preserveBg: false,
-                isClickable: true
-            };
-
-            bpArgs.ID = "PlayButton";
-            bpArgs.left = 260;
-            bpArgs.imagesArray = loaders["play_loader"].images;
-            window.bpButtons['play'] = new Button(bpArgs);
-            bpArgs.ID = "StopButton";
-            bpArgs.left = 179;
-            bpArgs.imagesArray = loaders["stop_loader"].images;
-            bpArgs.onValueSet = bpCallback();
-            window.bpButtons['stop'] = new Button(bpArgs);
-            bpArgs.ID = "RestartButton";
-            bpArgs.left = 343;
-            bpArgs.imagesArray = loaders["restart_loader"].images;
-            bpArgs.onValueSet = rsCallback();
-            window.bpButtons['restart'] = new Button(bpArgs);
-
-            ui.addElement(window.bpButtons['play'], {zIndex: 3});
-            ui.addElement(window.bpButtons['stop'], {zIndex: 3});
-            ui.addElement(window.bpButtons['restart'], {zIndex: 3});
-
-            // Cascading here; since the buttons are mutually excusive, we will
-            // need only a callback function.
-            ui.connectSlots ("PlayButton", "buttonvalue", "StopButton", "buttonvalue", {callback: function (value) {return 1-value;}});
-            ui.connectSlots ("StopButton", "buttonvalue", "PlayButton", "buttonvalue", {callback: function (value) {return 1-value;}});
-
-            // Start with play = off
-            ui.setValue('PlayButton', 'buttonvalue', 0);
-
-
-            /* KNOBS */
-
-            // INSTRUMENT (WHITE) KNOBS
-
-            var  instr_knob_names = [{ID: "Resonance", top: 255, left: 820},
-                                     {ID: "Release", top: 61, left: 820},
-                                     {ID: "Cutoff",  top: 255, left: 641},
-                                     {ID: "Portamento", top: 61, left: 641},
-                                     {ID: "Envelope", top: 61, left: 463}];
-
-            var instrKnobArgs = {
-                image : loaders["white_knob_loader"].images[0],
-                sensitivity : 5000,
-                isClickable: true,
-                preserveBg: false,
-                initAngValue: 270,
-                angSteps : 127,
-                startAngValue: 218,
-                stopAngValue : 501
-            };
-
-            instrKnobArgs.onValueSet = function () {
-                var that = this;
-                return function (slot, value, ID) {
-                    // Interpolate the instrKnobs value in the integer range [0,127]
-                    var interpolated_value = Math.round(value * 127);
-                    var functionName = "set" + ID;
-                    console.log ("Calling ADNonDescript[" + functionName + "] with value " + value + "-->" + interpolated_value);
-                    ADNonDescript[functionName](interpolated_value);
-                    window.ui.refresh();
-                    
-                };
-            }();
-
-            for (var i = 0; i < instr_knob_names.length; i ++) {
-                instrKnobArgs.ID = instr_knob_names[i].ID;
-                instrKnobArgs.top = instr_knob_names[i].top;
-                instrKnobArgs.left = instr_knob_names[i].left;
-                instrKnobs[i] = new RotKnob(instrKnobArgs);
-                ui.addElement(instrKnobs[i],  {zIndex: 10});
-            }
-
-            // GLOBAL (BLACK) KNOBS
-
-            var  global_knob_names = [{ID: "Distortion", top: 238, left: 448},
-                                      {ID: "Reverb", top: 240, left: 530},
-                                      {ID: "Tempo", top: 327, left: 449},
-                                      {ID: "Volume", top: 327, left: 527},
-                                      {ID: "Velocity", top: 155, left: 78}
-                                      ];
-
-            var globalKnobArgs = {
-                image : loaders["black_knob_loader"].images[0],
-                sensitivity : 5000,
-                isClickable: true,
-                initAngValue: 270,
-                angSteps : 127,
-                startAngValue: 218,
-                stopAngValue : 501
-            };
-
-            globalKnobArgs.onValueSet = function () {
-                var that = this;
-                return function (slot, value, ID) {
-                    var knobname = slot;
-                    // Interpolate the globalKnobs value in the integer range [0,127]
-                    var interpolated_value = Math.round(value * 127);
-                    var functionName = "set" + ID;
-                    console.log ("Calling ADBeesWax[" + functionName + "] with value " + value + "-->" + interpolated_value);
-                    //ADBeesWax[functionName](interpolated_value);*/
-                    window.ui.refresh();
-
-                };
-            }();
-
-            for (var i = 0; i < global_knob_names.length; i ++) {
-                globalKnobArgs.ID = global_knob_names[i].ID;
-                globalKnobArgs.top = global_knob_names[i].top;
-                globalKnobArgs.left = global_knob_names[i].left;
-                globalKnobs[i] = new RotKnob(globalKnobArgs);
-                ui.addElement(globalKnobs[i],  {zIndex: 10});
-            }
-
-            // PIANO ROLL
-
-            var pianoCallback = function ()  {
-                var that = this;
-                return function (slot, value, elName) {
-                    var noteNumber = parseInt(elName.split('_')[0], 10) - 33;
-                    var keySelected = parseInt(elName.split('_')[1], 10);
-                    if (currentKey !== keySelected) {
-                        // throw
-                    }
-                    var velocity = 63;
-
-                    if (value === 1) {
-                        // Set the others to off.
-                        for (var i = 0; i < window.pianoRollKeys[keySelected].length; i+=1) {
-                            if (window.pianoRollKeys[keySelected][i].ID !== elName) {
-                                if (window.pianoRollKeys[keySelected][i].getValue ("buttonvalue") === 1) {
-                                    // Turn it off visually using the UI. Do not invoke callbacks.
-                                    ui.setValue(window.pianoRollKeys[keySelected][i].ID, 'buttonvalue', 0, undefined, false);
-                                    // Turn it off manually, because callback is not invoked again.
-                                    var offNumber = parseInt(window.pianoRollKeys[keySelected][i].ID.split('_')[0],10) - 33;
-                                    console.log ("Note ", elName, " number ", noteNumber, " for key ", keySelected, " is OFF!");
-                                    ADNonDescript.noteOff();
-                                }
-                            }
-                        }
-                        console.log ("Note ", elName, " number ", noteNumber, " for key ", keySelected, " is ON!");
-                        ADNonDescript.noteOn(noteNumber, velocity);
-                    }
-                    else if (value === 0) {
-                        console.log ("Note ", elName, " number ", noteNumber, " for key ", keySelected, " is OFF!");
-                        ADNonDescript.noteOff(noteNumber, velocity);
-                    }
-                    else {
-                        // throw
-                        console.log ("Shouldn't be here!!");
-                    }
-                    ui.refresh();
-                }
-            }
-
-            var  pianoKeyData = [
-                { ID: "0",   image_ld: "tone_right_loader", left: 73 },
-                { ID: "1",  image_ld: "semitone_loader", left: 91 },
-                { ID: "2",   image_ld: "tone_both_loader", left: 97 },
-                { ID: "3",  image_ld: "semitone_loader",  left: 115 },
-                { ID: "4",   image_ld: "tone_left_loader", left: 121 },
-                { ID: "5",   image_ld: "tone_right_loader", left: 144 },
-                { ID: "6",  image_ld: "semitone_loader", left: 162 },
-                { ID: "7",   image_ld: "tone_both_loader", left: 168 },
-                { ID: "8",  image_ld: "semitone_loader", left: 186 },
-                { ID: "9",   image_ld: "tone_both_loader", left: 192 },
-                { ID: "10", image_ld: "semitone_loader", left: 210 },
-                { ID: "11",  image_ld: "tone_left_loader", left: 216 },
-                { ID: "12",  image_ld: "tone_right_loader", left: 239 },
-                { ID: "13", image_ld: "semitone_loader", left: 257},
-                { ID: "14",  image_ld: "tone_both_loader", left: 263 },
-                { ID: "15", image_ld: "semitone_loader", left: 280 },
-                { ID: "16",  image_ld: "tone_left_loader", left: 286 },
-                { ID: "17",  image_ld: "tone_right_loader", left: 310 },
-                { ID: "18", image_ld: "semitone_loader", left: 328 },
-                { ID: "19",  image_ld: "tone_both_loader", left: 334 },
-                { ID: "20", image_ld: "semitone_loader", left: 352 },
-                { ID: "21",  image_ld: "tone_both_loader", left: 358 },
-                { ID: "22", image_ld: "semitone_loader", left: 376 },
-                { ID: "23",  image_ld: "tone_left_loader", left: 382 },
-            ];
-
-            var pianoKeyArgs = {
-                top: 276,
-                preserveBg: false,
-                isClickable: true,
-                onValueSet: pianoCallback()
-            };
-
-            var pianoZIndex;
-            
-            for (var k = 0; k < window.keys.length; k += 1) {
-                for (var i = 0; i < pianoKeyData.length; i += 1) {
-                    pianoZIndex = 11;
-                    pianoKeyArgs.ID = pianoKeyData[i].ID + "_" + k;
-                    pianoKeyArgs.left = pianoKeyData[i].left;
-                    pianoKeyArgs.imagesArray = loaders[pianoKeyData[i].image_ld].images;
-                    if (pianoKeyData[i].image_ld === "semitone_loader") {
-                        pianoZIndex = 12;
-                    }
-                    
-                    if (window.pianoRollKeys[k] === undefined) {
-                        window.pianoRollKeys[k] = [];
-                    }
-
-                    window.pianoRollKeys[k].push(new Button(pianoKeyArgs));
-                    ui.addElement(window.pianoRollKeys[k][i], {zIndex: pianoZIndex});
-                    if (k !== currentKey) {
-                        ui.setVisible(pianoKeyArgs.ID, false);
-                    }
-                }
-            }
-
-
-            //debugger;
-            var ADNonDescript = new AudioDataNonDescript();
-            ADNonDescript.init({sampleRate: 44100});
-            ADNonDescript.setBypass (false);
-
-            ui.refresh();
-
+        
+        // CALLBACKS
+        
+        // PLAY / STOP BUTTON
+        MORNINGSTAR.uiPlayStart = function () {
+            // Sequencer is starting, set the unclickable controls.
+            // that.setUnclickableStart();
+            // Allow keys' third state.
+            // that.initKeysSeqStart();
+            // that.keys[i].setStatesNumber(3);
         }
+        
+        
+        MORNINGSTAR.bpCallback = function ()  {
+            var that = this;
+            return function (slot, value, elName) {
+                if (value === 1) {
+                    console.log ("Stopping the sequencer");
+                }
+                else if (value === 0) {
+                    console.log ("Starting the sequencer");
+                    
+                    // Start the timers
+                    // that.sequencerTimersStart();
+
+
+                }
+                else {
+                    // throw
+                    console.log ("Shouldn't be here!!");
+                }
+                that.ui.refresh();
+            }
+        }
+
+        // RESTART BUTTON
+        MORNINGSTAR.rsCallback = function ()  {
+            var that = this;
+            return function (slot, value, elName) {
+                if (value === 1) {
+                    console.log ("Restart is ON");
+                }
+                else if (value === 0) {
+                    console.log ("Restart is OFF");
+                }
+                else {
+                    // throw
+                    console.log ("Shouldn't be here!!");
+                }
+                that.ui.refresh();
+            }
+        }
+        
+        MORNINGSTAR.pianoCallback = function ()  {
+            var that = this;
+            return function (slot, value, elName) {
+                var noteNumber = parseInt(elName.split('_')[0], 10) - 33;
+                var keySelected = parseInt(elName.split('_')[1], 10);
+                if (that.currentKey !== keySelected) {
+                    // throw
+                }
+                var velocity = 63;
+
+                if (value === 1) {
+                    // Set the others to off.
+                    for (var i = 0; i < that.pianoRollKeys[keySelected].length; i+=1) {
+                        if (that.pianoRollKeys[keySelected][i].ID !== elName) {
+                            if (that.pianoRollKeys[keySelected][i].getValue ("buttonvalue") === 1) {
+                                // Turn it off visually using the UI. Do not invoke callbacks.
+                                that.ui.setValue(that.pianoRollKeys[keySelected][i].ID, 'buttonvalue', 0, undefined, false);
+                                // Turn it off manually, because callback is not invoked again.
+                                var offNumber = parseInt(that.pianoRollKeys[keySelected][i].ID.split('_')[0],10) - 33;
+                                console.log ("Note ", elName, " number ", noteNumber, " for key ", keySelected, " is OFF!");
+                                that.ADNonDescript.noteOff();
+                            }
+                        }
+                    }
+                    console.log ("Note ", elName, " number ", noteNumber, " for key ", keySelected, " is ON!");
+                    that.ADNonDescript.noteOn(noteNumber, velocity);
+                }
+                else if (value === 0) {
+                    console.log ("Note ", elName, " number ", noteNumber, " for key ", keySelected, " is OFF!");
+                    that.ADNonDescript.noteOff(noteNumber, velocity);
+                }
+                else {
+                    // throw
+                    console.log ("Shouldn't be here!!");
+                }
+                that.ui.refresh();
+            }
+        }
+        
+        MORNINGSTAR.keyCallback = function () {
+            var that = this;
+            return function (slot, value, ID) {
+                var note = parseInt(ID, 10);
+                if (value === 0) {
+                    console.log ("Unset step number " + ID);
+                }
+                else if (value === 1) {
+                    console.log ("Set step number " + ID);
+                }
+                else {
+                    //throw!
+                }
+                if (that.currentKey !== note) {
+                    // currentKey has changed. 
+                    // If a note is on, it shall be off in the synth (but still on visually).
+                    for (var i = 0; i < that.pianoRollKeys[that.currentKey].length; i+=1) {
+                        if (that.pianoRollKeys[that.currentKey][i].getValue ("buttonvalue") === 1) {
+                           that.ADNonDescript.noteOff();
+                        }
+                    }
+
+                    // Set the current piano roll as hidden,
+                    // and the new piano roll as visible
+                    for (var i = 0; i < that.pianoRollKeys[that.currentKey].length; i += 1) {
+                        that.ui.setVisible(i + '_' + that.currentKey, false);
+                        that.ui.setVisible(i + '_' + note, true);
+                    }
+                    that.ui.setVisible(that.currentKey + '_hl', false);
+                    that.ui.setVisible(note + '_hl', true);
+                    that.currentKey = note;
+
+                }
+                that.ui.refresh();
+            };
+        };
+        
+        
+        MORNINGSTAR.instrKnobCallback = function () {
+            var that = this;
+            return function (slot, value, ID) {
+                // Interpolate the instrKnobs value in the integer range [0,127]
+                var interpolated_value = Math.round(value * 127);
+                var functionName = "set" + ID;
+                console.log ("Calling ADNonDescript[" + functionName + "] with value " + value + "-->" + interpolated_value);
+                that.ADNonDescript[functionName](interpolated_value);
+                that.ui.refresh();
+
+            };
+        };
+        
+        MORNINGSTAR.globalKnobCallback = function () {
+            var that = this;
+            return function (slot, value, ID) {
+                var knobname = slot;
+                // Interpolate the globalKnobs value in the integer range [0,127]
+                var interpolated_value = Math.round(value * 127);
+                var functionName = "set" + ID;
+                console.log ("Calling ADBeesWax[" + functionName + "] with value " + value + "-->" + interpolated_value);
+                //ADBeesWax[functionName](interpolated_value);*/
+                that.ui.refresh();
+
+            };
+        };
+
+        MORNINGSTAR.afterLoading = function () {
+            
+            var that = this;
+            
+            return function (loaders) {
+      
+                var key_initial_offset = 67,
+                    key_distance = 55;
+
+                that.background = undefined,
+                that.keys = [],
+                that.highlights = [],
+                that.instrKnobs = [],
+                that.globalKnobs = [],
+                that.pianoRollKeys = {},
+                that.bpButtons = {};
+                that.currentKey = 0;
+
+                /* BACKGROUND */
+
+                var backgroundArgs = {
+                    ID: 'background',
+                    top: 0,
+                    left: 0,
+                    image: loaders["background_loader"].images[0]
+                    }
+
+                that.background = new Background (backgroundArgs);
+                that.ui.addElement(that.background, {zIndex: 1});
+
+                /* KEYS */
+
+                var highlightArgs = {
+                    left: 0,
+                    top: 445,
+                    image: loaders["highlight_loader"].images[0]
+                    }
+
+                var keyArgs = {
+                    /*ID: "note",*/
+                    left:  0,
+                    top: 447,
+                    preserveBg: false,
+                    isClickable: true
+                };
+
+                keyArgs.onValueSet = that.keyCallback();
+
+                for (var i = 0; i < that.steps_array.length; i += 1) {
+                    keyArgs.ID = i;
+                    keyArgs.imagesArray = loaders[that.steps_array[i] + "_loader"].images,
+                    keyArgs.left = key_initial_offset + i * key_distance;
+
+                    highlightArgs.ID = i + '_hl';
+                    highlightArgs.left = keyArgs.left + 1;
+                    // TODO window will become that or Beeswax
+                    that.keys[i] = new Button(keyArgs);
+                    that.keys[i].setStatesNumber(2);
+                    that.highlights[i] = new Background(highlightArgs);
+
+                    that.ui.addElement(that.keys[i], {zIndex: 5});
+                    that.ui.addElement(that.highlights[i], {zIndex: 10});
+
+                    if (i !== that.currentKey) {
+                        that.ui.setVisible(highlightArgs.ID, false);
+                    }
+                }
+
+                // BYPASS / PLAY / REPEAT BUTTONS
+              
+
+                var bpArgs = {
+                    top: 153,
+                    preserveBg: false,
+                    isClickable: true
+                };
+
+                bpArgs.ID = "PlayButton";
+                bpArgs.left = 260;
+                bpArgs.imagesArray = loaders["play_loader"].images;
+                that.bpButtons['play'] = new Button(bpArgs);
+                bpArgs.ID = "StopButton";
+                bpArgs.left = 179;
+                bpArgs.imagesArray = loaders["stop_loader"].images;
+                bpArgs.onValueSet = that.bpCallback();
+                that.bpButtons['stop'] = new Button(bpArgs);
+                bpArgs.ID = "RestartButton";
+                bpArgs.left = 343;
+                bpArgs.imagesArray = loaders["restart_loader"].images;
+                bpArgs.onValueSet = that.rsCallback();
+                that.bpButtons['restart'] = new Button(bpArgs);
+
+                that.ui.addElement(that.bpButtons['play'], {zIndex: 3});
+                that.ui.addElement(that.bpButtons['stop'], {zIndex: 3});
+                that.ui.addElement(that.bpButtons['restart'], {zIndex: 3});
+
+                // Cascading here; since the buttons are mutually excusive, we will
+                // need only a callback function.
+                that.ui.connectSlots ("PlayButton", "buttonvalue", "StopButton", "buttonvalue", {callback: function (value) {return 1-value;}});
+                that.ui.connectSlots ("StopButton", "buttonvalue", "PlayButton", "buttonvalue", {callback: function (value) {return 1-value;}});
+
+                // Start with play = off
+                that.ui.setValue('PlayButton', 'buttonvalue', 0);
+
+
+                /* KNOBS */
+
+                // INSTRUMENT (WHITE) KNOBS
+
+                var  instr_knob_names = [{ID: "Resonance", top: 255, left: 820},
+                                         {ID: "Release", top: 61, left: 820},
+                                         {ID: "Cutoff",  top: 255, left: 641},
+                                         {ID: "Portamento", top: 61, left: 641},
+                                         {ID: "Envelope", top: 61, left: 463}];
+
+                var instrKnobArgs = {
+                    image : loaders["white_knob_loader"].images[0],
+                    sensitivity : 5000,
+                    isClickable: true,
+                    preserveBg: false,
+                    initAngValue: 270,
+                    angSteps : 127,
+                    startAngValue: 218,
+                    stopAngValue : 501
+                };
+
+                instrKnobArgs.onValueSet = that.instrKnobCallback();
+
+                for (var i = 0; i < instr_knob_names.length; i ++) {
+                    instrKnobArgs.ID = instr_knob_names[i].ID;
+                    instrKnobArgs.top = instr_knob_names[i].top;
+                    instrKnobArgs.left = instr_knob_names[i].left;
+                    that.instrKnobs[i] = new RotKnob(instrKnobArgs);
+                    that.ui.addElement(that.instrKnobs[i],  {zIndex: 10});
+                }
+
+                // GLOBAL (BLACK) KNOBS
+
+                var  global_knob_names = [{ID: "Distortion", top: 238, left: 448},
+                                          {ID: "Reverb", top: 240, left: 530},
+                                          {ID: "Tempo", top: 327, left: 449},
+                                          {ID: "Volume", top: 327, left: 527},
+                                          {ID: "Velocity", top: 155, left: 78}
+                                          ];
+
+                var globalKnobArgs = {
+                    image : loaders["black_knob_loader"].images[0],
+                    sensitivity : 5000,
+                    isClickable: true,
+                    initAngValue: 270,
+                    angSteps : 127,
+                    startAngValue: 218,
+                    stopAngValue : 501
+                };
+
+                globalKnobArgs.onValueSet = that.globalKnobCallback();
+
+                for (var i = 0; i < global_knob_names.length; i ++) {
+                    globalKnobArgs.ID = global_knob_names[i].ID;
+                    globalKnobArgs.top = global_knob_names[i].top;
+                    globalKnobArgs.left = global_knob_names[i].left;
+                    that.globalKnobs[i] = new RotKnob(globalKnobArgs);
+                    that.ui.addElement(that.globalKnobs[i],  {zIndex: 10});
+                }
+
+                // PIANO ROLL
+           
+
+                var  pianoKeyData = [
+                    { ID: "0",   image_ld: "tone_right_loader", left: 73 },
+                    { ID: "1",  image_ld: "semitone_loader", left: 91 },
+                    { ID: "2",   image_ld: "tone_both_loader", left: 97 },
+                    { ID: "3",  image_ld: "semitone_loader",  left: 115 },
+                    { ID: "4",   image_ld: "tone_left_loader", left: 121 },
+                    { ID: "5",   image_ld: "tone_right_loader", left: 144 },
+                    { ID: "6",  image_ld: "semitone_loader", left: 162 },
+                    { ID: "7",   image_ld: "tone_both_loader", left: 168 },
+                    { ID: "8",  image_ld: "semitone_loader", left: 186 },
+                    { ID: "9",   image_ld: "tone_both_loader", left: 192 },
+                    { ID: "10", image_ld: "semitone_loader", left: 210 },
+                    { ID: "11",  image_ld: "tone_left_loader", left: 216 },
+                    { ID: "12",  image_ld: "tone_right_loader", left: 239 },
+                    { ID: "13", image_ld: "semitone_loader", left: 257},
+                    { ID: "14",  image_ld: "tone_both_loader", left: 263 },
+                    { ID: "15", image_ld: "semitone_loader", left: 280 },
+                    { ID: "16",  image_ld: "tone_left_loader", left: 286 },
+                    { ID: "17",  image_ld: "tone_right_loader", left: 310 },
+                    { ID: "18", image_ld: "semitone_loader", left: 328 },
+                    { ID: "19",  image_ld: "tone_both_loader", left: 334 },
+                    { ID: "20", image_ld: "semitone_loader", left: 352 },
+                    { ID: "21",  image_ld: "tone_both_loader", left: 358 },
+                    { ID: "22", image_ld: "semitone_loader", left: 376 },
+                    { ID: "23",  image_ld: "tone_left_loader", left: 382 },
+                ];
+
+                var pianoKeyArgs = {
+                    top: 276,
+                    preserveBg: false,
+                    isClickable: true,
+                    onValueSet: that.pianoCallback()
+                };
+
+                var pianoZIndex;
+
+                for (var k = 0; k < that.keys.length; k += 1) {
+                    for (var i = 0; i < pianoKeyData.length; i += 1) {
+                        pianoZIndex = 11;
+                        pianoKeyArgs.ID = pianoKeyData[i].ID + "_" + k;
+                        pianoKeyArgs.left = pianoKeyData[i].left;
+                        pianoKeyArgs.imagesArray = loaders[pianoKeyData[i].image_ld].images;
+                        if (pianoKeyData[i].image_ld === "semitone_loader") {
+                            pianoZIndex = 12;
+                        }
+
+                        if (that.pianoRollKeys[k] === undefined) {
+                            that.pianoRollKeys[k] = [];
+                        }
+
+                        that.pianoRollKeys[k].push(new Button(pianoKeyArgs));
+                        that.ui.addElement(that.pianoRollKeys[k][i], {zIndex: pianoZIndex});
+                        if (k !== that.currentKey) {
+                            that.ui.setVisible(pianoKeyArgs.ID, false);
+                        }
+                    }
+                }
+
+
+                //debugger;
+                that.ADNonDescript = new AudioDataNonDescript();
+                that.ADNonDescript.init({sampleRate: 44100});
+                that.ADNonDescript.setBypass (false);
+
+                that.ui.refresh();
+
+            }
+        }
+        
+        MORNINGSTAR.init = function () {
+            /* INIT */
+            var plugin_canvas = document.getElementById("plugin");
+            var CWrapper = K2WRAPPER.createWrapper("CANVAS_WRAPPER",
+                                                        {canvas: plugin_canvas}
+                                                        );
+            this.ui = new UI (plugin_canvas, CWrapper, {breakOnFirstEvent: true});
+
+            this.steps_array = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16"];
+            var imageResources = [];
+
+            var mulArgs = { multipleImages: [],
+                            onComplete: this.afterLoading(),
+                            onError: this.logError
+            }
+
+            // Load keys
+
+            for (var i = 0; i < this.steps_array.length; i += 1) {
+                imageResources = ["Keys/" + this.steps_array[i] + "_inactive.png", "Keys/" + this.steps_array[i] + "_active.png", "Keys/" + this.steps_array[i] + "_playing.png"];
+                mulArgs.multipleImages.push ({ID: this.steps_array[i] + "_loader", imageNames : imageResources});
+            }
+
+            // Load key highlight
+            imageResources = ["Keys/key_highlight.png"];
+            mulArgs.multipleImages.push ({ID: "highlight_loader", imageNames : imageResources});
+
+
+            // Load bypass / play button
+            imageResources = ["PlaybackControls/play_inactive.png", "PlaybackControls/play_active.png"];
+            mulArgs.multipleImages.push ({ID: "play_loader", imageNames : imageResources});
+            imageResources = ["PlaybackControls/stop_inactive.png", "PlaybackControls/stop_active.png"];
+            mulArgs.multipleImages.push ({ID: "stop_loader", imageNames : imageResources});
+            imageResources = ["PlaybackControls/repeat_inactive.png", "PlaybackControls/repeat_active.png"];
+            mulArgs.multipleImages.push ({ID: "restart_loader", imageNames : imageResources});
+
+            // Load piano roll parts
+            // Semitone button
+            imageResources = ["PianoRoll/semitone_inactive.png", "PianoRoll/semitone_active.png"];
+            mulArgs.multipleImages.push ({ID: "semitone_loader", imageNames : imageResources});
+            // Tone with two semitones
+            imageResources = ["PianoRoll/tone_both_inactive.png", "PianoRoll/tone_both_active.png"];
+            mulArgs.multipleImages.push ({ID: "tone_both_loader", imageNames : imageResources});
+            // Tone with a left semitone
+            imageResources = ["PianoRoll/tone_left_inactive.png", "PianoRoll/tone_left_active.png"];
+            mulArgs.multipleImages.push ({ID: "tone_left_loader", imageNames : imageResources});
+            // Tone with a right semitone
+            imageResources = ["PianoRoll/tone_right_inactive.png", "PianoRoll/tone_right_active.png"];
+            mulArgs.multipleImages.push ({ID: "tone_right_loader", imageNames : imageResources});
+
+            // Load instrKnobs rotary part
+            mulArgs.multipleImages.push ({ID: "black_knob_loader", imageNames : ["Knobs/Black_small.png"]});
+            mulArgs.multipleImages.push ({ID: "white_knob_loader", imageNames : ["Knobs/White_big.png"]});
+
+            // Load bg
+            mulArgs.multipleImages.push ({ID: "background_loader", imageNames : ["ND_deck_1.png"]});
+
+            var mImageLoader = new loadMultipleImages (mulArgs);
+        
+        }
+        
+        MORNINGSTAR.init();
 
 
     </script>
