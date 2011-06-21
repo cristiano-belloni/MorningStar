@@ -108,7 +108,7 @@
                 image: loaders["background_loader"].images[0]
                 }
 
-            // TODO window will become this or Beeswax
+            // TODO window will become this or MorningStar
             window.background = new Background (backgroundArgs);
             ui.addElement(window.background, {zIndex: 1});
 
@@ -123,7 +123,7 @@
             var keyArgs = {
                 /*ID: "note",*/
                 left:  0,
-                top: 448,
+                top: 447,
                 preserveBg: false,
                 isClickable: true
             };
@@ -142,7 +142,15 @@
                         //throw!
                     }
                     if (currentKey !== note) {
-                        // currentKey has changed. Set the current piano roll as hidden,
+                        // currentKey has changed. 
+                        // If a note is on, it shall be off in the synth (but still on visually).
+                        for (var i = 0; i < window.pianoRollKeys[currentKey].length; i+=1) {
+                            if (window.pianoRollKeys[currentKey][i].getValue ("buttonvalue") === 1) {
+                               ADNonDescript.noteOff();
+                            }
+                        }
+                         
+                        // Set the current piano roll as hidden,
                         // and the new piano roll as visible
                         for (var i = 0; i < window.pianoRollKeys[currentKey].length; i += 1) {
                             ui.setVisible(i + '_' + currentKey, false);
@@ -187,6 +195,15 @@
                     }
                     else if (value === 0) {
                         console.log ("Starting the sequencer");
+                        // Sequencer is starting, set unclickable most of the controls.
+                        // this.setUnclickableStart();
+                        // Set keys as three-state.
+                        // this.initKeysSeqStart();
+                        // window.keys[i].setStatesNumber(3);
+                        // Start the timers
+                        // this.sequencerTimersStart();
+                        
+                        
                     }
                     else {
                         // throw
@@ -352,7 +369,7 @@
                                     // Turn it off manually, because callback is not invoked again.
                                     var offNumber = parseInt(window.pianoRollKeys[keySelected][i].ID.split('_')[0],10) - 33;
                                     console.log ("Note ", elName, " number ", noteNumber, " for key ", keySelected, " is OFF!");
-                                    ADNonDescript.noteOff(offNumber, velocity);
+                                    ADNonDescript.noteOff();
                                 }
                             }
                         }
