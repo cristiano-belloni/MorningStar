@@ -44,7 +44,19 @@
   	  };
   	}
         
-        var MORNINGSTAR = {};
+        var MORNINGSTAR = {
+            steps_array : ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16"],
+            sequenceStep : -1,
+            //background : undefined,
+            keys : [],
+            playKeys : [],
+            highlights : [],
+            instrKnobs : [],
+            globalKnobs : [],
+            pianoRollKeys : {},
+            bpButtons : {},
+            currentKey : 0
+        };
 
         MORNINGSTAR.logError = function (status) {
             console.log(status);
@@ -53,19 +65,25 @@
         // CALLBACKS
         
         // PLAY / STOP BUTTON
-        MORNINGSTAR.uiPlayStartStop = function (clickable, states) {
+        MORNINGSTAR.uiPlayStartStop = function (state) {
+            
             // Sequencer is starting, set the unclickable controls.
             
             // Keys
             for (var i = 0, len = this.steps_array.length; i < len; i+=1) {
-                this.keys[i].setClickable (clickable);
-                // Allow keys' third state.
-                this.keys[i].setStatesNumber(states);
+                this.ui.setClickable(this.keys[i].ID, state);
             }
             
             // Piano Roll
             for (var i = 0; i < this.pianoRollKeys[this.currentKey].length; i+=1) {
-                this.pianoRollKeys[this.currentKey][i].setClickable (clickable);
+                this.pianoRollKeys[this.currentKey][i].setClickable (state);
+            }
+            
+            if ((state === true) && (this.sequenceStep !== -1)) {
+                // Set the last play key as invisible
+                this.ui.setVisible(this.playKeys[this.sequenceStep].ID, false);
+                // Set the last real key as visible
+                this.ui.setVisible(this.keys[this.sequenceStep].ID, true);
             }
         }
         
@@ -75,18 +93,49 @@
         
         MORNINGSTAR.sequencerRoutine = function () {
             
-            if (MORNINGSTAR.sequenceStep !== -1) {
-                //restore position
+            var offNumber = 50000;
+
+            this.ADNonDescript.noteOff();
+            
+            // Play note
+            if (this.keys[(this.sequenceStep + 1) % 16].getValue("buttonvalue") === 1) {
+                for (var i = 0; i < this.pianoRollKeys[(this.sequenceStep + 1) % 16].length; i+=1) {
+                    if (this.pianoRollKeys[(this.sequenceStep + 1) % 16][i].getValue ("buttonvalue") === 1) {
+                        offNumber = i - 33;
+                        break;
+                    }
+                }
             }
-            //increment position and save the current position
-            //draw position            
+            
+            if (offNumber !== 50000) {
+                this.ADNonDescript.noteOn(offNumber, 64);
+            }
+            
+            if (this.sequenceStep !== -1) {
+                //Restore previous key
+                //play key becomes invisible
+                this.ui.setVisible(this.playKeys[this.sequenceStep].ID, false);
+                //i/o key becomes visible
+                this.ui.setVisible(this.keys[this.sequenceStep].ID, true);
+                //and unclickable, again
+                this.ui.setClickable(this.keys[this.sequenceStep].ID, false);
+            }
+            //increment position and draw a play key
+            this.sequenceStep = (this.sequenceStep + 1) % this.keys.length;
+            //i/o key is invisible
+            this.ui.setVisible(this.keys[this.sequenceStep].ID, false);
+            //play key becomes visible
+            this.ui.setVisible(this.playKeys[this.sequenceStep].ID, true);
+            this.ui.refresh();
+            
         }
         
         MORNINGSTAR.sequencerTimerStart = function () {
-            
-            var interval = 60000 / this.tempo_value;
+            // Calculate intervals given the BPM
+            var interval = 60000 / this.tempo_value / 4;
             console.log ("Setting the timer to ", interval, " seconds");
-            this.sequencerTimer = setInterval(this.sequencerRoutine, interval);
+            // Create the timer
+            this.sequencerTimer = setInterval(this.sequencerRoutine.bind(MORNINGSTAR), interval);
             
         }
         
@@ -94,389 +143,376 @@
             clearInterval(this.sequencerTimer);
         }
         
-        MORNINGSTAR.bpCallback = function ()  {
-            var that = this;
-            return function (slot, value, elName) {
-                if (value === 1) {
-                    // Stop the timer
-                    that.sequencerTimerStop();
-                    
-                    // Pepare UI for stop mode
-                    console.log ("Stopping the sequencer");
-                    that.uiPlayStartStop(true, 2);
-                }
-                else if (value === 0) {
-                    // Pepare UI for play mode
-                    console.log ("Starting the sequencer");
-                    that.uiPlayStartStop(false, 3);
-                    
-                    // Start the timer
-                    that.sequencerTimerStart();
-                }
-                else {
-                    // throw
-                    console.log ("Shouldn't be here!!");
-                }
-                that.ui.refresh();
+        MORNINGSTAR.bpCallback = function (slot, value, elName)  {
+            
+            if (value === 1) {
+                // Stop the timer
+                this.sequencerTimerStop.call(this);
+
+                // Pepare UI for i/o mode
+                console.log ("Stopping the sequencer");
+                this.uiPlayStartStop.call(this, true);
             }
+            else if (value === 0) {
+                // Pepare UI for play mode
+                console.log ("Starting the sequencer");
+                this.uiPlayStartStop.call(this, false);
+
+                // Start the timer
+                this.sequencerTimerStart.call(this);
+            }
+            else {
+                // throw
+                console.log ("Shouldn't be here!!");
+            }
+            this.ui.refresh();
+            
         }
 
         // RESTART BUTTON
-        MORNINGSTAR.rsCallback = function ()  {
-            var that = this;
-            return function (slot, value, elName) {
-                if (value === 1) {
-                    console.log ("Restart is ON");
-                }
-                else if (value === 0) {
-                    console.log ("Restart is OFF");
-                }
-                else {
-                    // throw
-                    console.log ("Shouldn't be here!!");
-                }
-                that.ui.refresh();
+        MORNINGSTAR.rsCallback = function (slot, value, elName)  {
+            
+            if (value === 1) {
+                console.log ("Restart is ON");
             }
+            else if (value === 0) {
+                console.log ("Restart is OFF");
+            }
+            else {
+                // throw
+                console.log ("Shouldn't be here!!");
+            }
+            this.ui.refresh();
+            
         }
         
-        MORNINGSTAR.pianoCallback = function ()  {
-            var that = this;
-            return function (slot, value, elName) {
-                var noteNumber = parseInt(elName.split('_')[0], 10) - 33;
-                var keySelected = parseInt(elName.split('_')[1], 10);
-                if (that.currentKey !== keySelected) {
-                    // throw
-                }
-                var velocity = 63;
+        MORNINGSTAR.pianoCallback = function (slot, value, elName)  {
+            
+            var noteNumber = parseInt(elName.split('_')[0], 10) - 33;
+            var keySelected = parseInt(elName.split('_')[1], 10);
+            if (this.currentKey !== keySelected) {
+                // throw
+            }
+            var velocity = 63;
 
-                if (value === 1) {
-                    // Set the others to off.
-                    for (var i = 0; i < that.pianoRollKeys[keySelected].length; i+=1) {
-                        if (that.pianoRollKeys[keySelected][i].ID !== elName) {
-                            if (that.pianoRollKeys[keySelected][i].getValue ("buttonvalue") === 1) {
-                                // Turn it off visually using the UI. Do not invoke callbacks.
-                                that.ui.setValue(that.pianoRollKeys[keySelected][i].ID, 'buttonvalue', 0, undefined, false);
-                                // Turn it off manually, because callback is not invoked again.
-                                var offNumber = parseInt(that.pianoRollKeys[keySelected][i].ID.split('_')[0],10) - 33;
-                                console.log ("Note ", elName, " number ", noteNumber, " for key ", keySelected, " is OFF!");
-                                that.ADNonDescript.noteOff();
-                            }
+            if (value === 1) {
+                // Set the others to off.
+                for (var i = 0; i < this.pianoRollKeys[keySelected].length; i+=1) {
+                    if (this.pianoRollKeys[keySelected][i].ID !== elName) {
+                        if (this.pianoRollKeys[keySelected][i].getValue ("buttonvalue") === 1) {
+                            // Turn it off visually using the UI. Do not invoke callbacks.
+                            this.ui.setValue(this.pianoRollKeys[keySelected][i].ID, 'buttonvalue', 0, undefined, false);
+                            // Turn it off manually, because callback is not invoked again.
+                            var offNumber = parseInt(this.pianoRollKeys[keySelected][i].ID.split('_')[0],10) - 33;
+                            console.log ("Note ", elName, " number ", noteNumber, " for key ", keySelected, " is OFF!");
+                            this.ADNonDescript.noteOff();
                         }
                     }
-                    console.log ("Note ", elName, " number ", noteNumber, " for key ", keySelected, " is ON!");
-                    that.ADNonDescript.noteOn(noteNumber, velocity);
                 }
-                else if (value === 0) {
-                    console.log ("Note ", elName, " number ", noteNumber, " for key ", keySelected, " is OFF!");
-                    that.ADNonDescript.noteOff(noteNumber, velocity);
-                }
-                else {
-                    // throw
-                    console.log ("Shouldn't be here!!");
-                }
-                that.ui.refresh();
+                console.log ("Note ", elName, " number ", noteNumber, " for key ", keySelected, " is ON!");
+                this.ADNonDescript.noteOn(noteNumber, velocity);
             }
+            else if (value === 0) {
+                console.log ("Note ", elName, " number ", noteNumber, " for key ", keySelected, " is OFF!");
+                this.ADNonDescript.noteOff(noteNumber, velocity);
+            }
+            else {
+                // throw
+                console.log ("Shouldn't be here!!");
+            }
+            this.ui.refresh();
         }
         
-        MORNINGSTAR.keyCallback = function () {
-            var that = this;
-            return function (slot, value, ID) {
-                var note = parseInt(ID, 10);
-                if (value === 0) {
-                    console.log ("Unset step number " + ID);
-                }
-                else if (value === 1) {
-                    console.log ("Set step number " + ID);
-                }
-                else {
-                    //throw!
-                }
-                if (that.currentKey !== note) {
-                    // currentKey has changed. 
-                    // If a note is on, it shall be off in the synth (but still on visually).
-                    for (var i = 0; i < that.pianoRollKeys[that.currentKey].length; i+=1) {
-                        if (that.pianoRollKeys[that.currentKey][i].getValue ("buttonvalue") === 1) {
-                           that.ADNonDescript.noteOff();
-                        }
+        MORNINGSTAR.keyCallback = function (slot, value, ID) {
+
+            var note = parseInt(ID, 10);
+            if (value === 0) {
+                console.log ("Unset step number " + ID);
+            }
+            else if (value === 1) {
+                console.log ("Set step number " + ID);
+            }
+            else {
+                //throw!
+            }
+            if (this.currentKey !== note) {
+                // currentKey has changed. 
+                // If a note is on, it shall be off in the synth (but still on visually).
+                for (var i = 0; i < this.pianoRollKeys[this.currentKey].length; i+=1) {
+                    if (this.pianoRollKeys[this.currentKey][i].getValue ("buttonvalue") === 1) {
+                       this.ADNonDescript.noteOff();
                     }
-
-                    // Set the current piano roll as hidden,
-                    // and the new piano roll as visible
-                    for (var i = 0; i < that.pianoRollKeys[that.currentKey].length; i += 1) {
-                        that.ui.setVisible(i + '_' + that.currentKey, false);
-                        that.ui.setVisible(i + '_' + note, true);
-                    }
-                    that.ui.setVisible(that.currentKey + '_hl', false);
-                    that.ui.setVisible(note + '_hl', true);
-                    that.currentKey = note;
-
                 }
-                that.ui.refresh();
-            };
-        };
-        
-        
-        MORNINGSTAR.instrKnobCallback = function () {
-            var that = this;
-            return function (slot, value, ID) {
-                // Interpolate the instrKnobs value in the integer range [0,127]
-                var interpolated_value = Math.round(value * 127);
-                var functionName = "set" + ID;
-                console.log ("Calling ADNonDescript[" + functionName + "] with value " + value + "-->" + interpolated_value);
-                that.ADNonDescript[functionName](interpolated_value);
-                that.ui.refresh();
 
-            };
-        };
-        
-        MORNINGSTAR.globalKnobCallback = function () {
-            var that = this;
-            return function (slot, value, ID) {
-                if (ID === "Tempo") {
-                    // Interpolate the globalKnobs value in the integer range [60,180]
-                    // LINEAR INTERPOLATION: x := (c - a) * (z - y) / (b - a) + y
-                    // a = 0, b = 1, z = 180, y = 60
-                    that.tempo_value = Math.round(value *  120 + 60);
-                    console.log ("TEMPO set to ", that.tempo_value);
+                // Set the current piano roll as hidden,
+                // and the new piano roll as visible
+                for (var i = 0; i < this.pianoRollKeys[this.currentKey].length; i += 1) {
+                    this.ui.setVisible(i + '_' + this.currentKey, false);
+                    this.ui.setVisible(i + '_' + note, true);
                 }
-                that.ui.refresh();
-            };
+                this.ui.setVisible(this.currentKey + '_hl', false);
+                this.ui.setVisible(note + '_hl', true);
+                this.currentKey = note;
+
+            }
+            this.ui.refresh();
+        };
+        
+        
+        MORNINGSTAR.instrKnobCallback = function (slot, value, ID) {
+            // Interpolate the instrKnobs value in the integer range [0,127]
+            var interpolated_value = Math.round(value * 127);
+            var functionName = "set" + ID;
+            console.log ("Calling ADNonDescript[" + functionName + "] with value " + value + "-->" + interpolated_value);
+            this.ADNonDescript[functionName](interpolated_value);
+            this.ui.refresh();     
+        };
+        
+        MORNINGSTAR.globalKnobCallback = function (slot, value, ID) {
+            if (ID === "Tempo") {
+                // Interpolate the globalKnobs value in the integer range [60,180]
+                // LINEAR INTERPOLATION: x := (c - a) * (z - y) / (b - a) + y
+                // a = 0, b = 1, z = 180, y = 60
+                this.tempo_value = Math.round(value *  120 + 60);
+                console.log ("TEMPO set to ", this.tempo_value);
+            }
+            this.ui.refresh();
         };
 
-        MORNINGSTAR.afterLoading = function () {
-            
-            var that = this;
-            
-            return function (loaders) {
+        MORNINGSTAR.afterLoading = function (loaders) {
       
-                var key_initial_offset = 67,
-                    key_distance = 55;
+            var key_initial_offset = 67,
+                key_distance = 55;
 
-                that.background = undefined,
-                that.keys = [],
-                that.highlights = [],
-                that.instrKnobs = [],
-                that.globalKnobs = [],
-                that.pianoRollKeys = {},
-                that.bpButtons = {};
-                that.currentKey = 0;
+            /* BACKGROUND */
 
-                /* BACKGROUND */
-
-                var backgroundArgs = {
-                    ID: 'background',
-                    top: 0,
-                    left: 0,
-                    image: loaders["background_loader"].images[0]
-                    }
-
-                that.background = new Background (backgroundArgs);
-                that.ui.addElement(that.background, {zIndex: 1});
-
-                /* KEYS */
-
-                var highlightArgs = {
-                    left: 0,
-                    top: 445,
-                    image: loaders["highlight_loader"].images[0]
-                    }
-
-                var keyArgs = {
-                    /*ID: "note",*/
-                    left:  0,
-                    top: 447,
-                    preserveBg: false,
-                    isClickable: true
-                };
-
-                keyArgs.onValueSet = that.keyCallback();
-
-                for (var i = 0; i < that.steps_array.length; i += 1) {
-                    keyArgs.ID = i;
-                    keyArgs.imagesArray = loaders[that.steps_array[i] + "_loader"].images,
-                    keyArgs.left = key_initial_offset + i * key_distance;
-
-                    highlightArgs.ID = i + '_hl';
-                    highlightArgs.left = keyArgs.left + 1;
-                    
-                    that.keys[i] = new Button(keyArgs);
-                    that.keys[i].setStatesNumber(2);
-                    that.highlights[i] = new Background(highlightArgs);
-
-                    that.ui.addElement(that.keys[i], {zIndex: 5});
-                    that.ui.addElement(that.highlights[i], {zIndex: 10});
-
-                    if (i !== that.currentKey) {
-                        that.ui.setVisible(highlightArgs.ID, false);
-                    }
+            var backgroundArgs = {
+                ID: 'background',
+                top: 0,
+                left: 0,
+                image: loaders["background_loader"].images[0]
                 }
 
-                // BYPASS / PLAY / REPEAT BUTTONS
+            this.background = new Background (backgroundArgs);
+            this.ui.addElement(this.background, {zIndex: 1});
 
-                var bpArgs = {
-                    top: 153,
-                    preserveBg: false,
-                    isClickable: true
-                };
+            /* KEYS */
 
-                bpArgs.ID = "PlayButton";
-                bpArgs.left = 260;
-                bpArgs.imagesArray = loaders["play_loader"].images;
-                that.bpButtons['play'] = new Button(bpArgs);
-                bpArgs.ID = "StopButton";
-                bpArgs.left = 179;
-                bpArgs.imagesArray = loaders["stop_loader"].images;
-                bpArgs.onValueSet = that.bpCallback();
-                that.bpButtons['stop'] = new Button(bpArgs);
-                bpArgs.ID = "RestartButton";
-                bpArgs.left = 343;
-                bpArgs.imagesArray = loaders["restart_loader"].images;
-                bpArgs.onValueSet = that.rsCallback();
-                that.bpButtons['restart'] = new Button(bpArgs);
-
-                that.ui.addElement(that.bpButtons['play'], {zIndex: 3});
-                that.ui.addElement(that.bpButtons['stop'], {zIndex: 3});
-                that.ui.addElement(that.bpButtons['restart'], {zIndex: 3});
-
-                // Cascading here; since the buttons are mutually excusive, we will
-                // need only a callback function.
-                that.ui.connectSlots ("PlayButton", "buttonvalue", "StopButton", "buttonvalue", {callback: function (value) {return 1-value;}});
-                that.ui.connectSlots ("StopButton", "buttonvalue", "PlayButton", "buttonvalue", {callback: function (value) {return 1-value;}});
-
-                /* KNOBS */
-
-                // INSTRUMENT (WHITE) KNOBS
-
-                var  instr_knob_names = [{ID: "Resonance", top: 255, left: 820},
-                                         {ID: "Release", top: 61, left: 820},
-                                         {ID: "Cutoff",  top: 255, left: 641},
-                                         {ID: "Portamento", top: 61, left: 641},
-                                         {ID: "Envelope", top: 61, left: 463}];
-
-                var instrKnobArgs = {
-                    image : loaders["white_knob_loader"].images[0],
-                    sensitivity : 5000,
-                    isClickable: true,
-                    preserveBg: false,
-                    initAngValue: 270,
-                    angSteps : 127,
-                    startAngValue: 218,
-                    stopAngValue : 501
-                };
-
-                instrKnobArgs.onValueSet = that.instrKnobCallback();
-
-                for (var i = 0; i < instr_knob_names.length; i ++) {
-                    instrKnobArgs.ID = instr_knob_names[i].ID;
-                    instrKnobArgs.top = instr_knob_names[i].top;
-                    instrKnobArgs.left = instr_knob_names[i].left;
-                    that.instrKnobs[i] = new RotKnob(instrKnobArgs);
-                    that.ui.addElement(that.instrKnobs[i],  {zIndex: 10});
+            var highlightArgs = {
+                left: 0,
+                top: 445,
+                image: loaders["highlight_loader"].images[0]
                 }
 
-                // GLOBAL (BLACK) KNOBS
+            var keyArgs = {
+                /*ID: "note",*/
+                left:  0,
+                top: 447,
+                preserveBg: false,
+                isClickable: true
+            };
 
-                var  global_knob_names = [{ID: "Distortion", top: 238, left: 448},
-                                          {ID: "Reverb", top: 240, left: 530},
-                                          {ID: "Tempo", top: 327, left: 449},
-                                          {ID: "Volume", top: 327, left: 527},
-                                          {ID: "Velocity", top: 155, left: 78}
-                                          ];
+            keyArgs.onValueSet = this.keyCallback.bind(MORNINGSTAR);
 
-                var globalKnobArgs = {
-                    image : loaders["black_knob_loader"].images[0],
-                    sensitivity : 5000,
-                    isClickable: true,
-                    initAngValue: 270,
-                    angSteps : 120,
-                    startAngValue: 218,
-                    stopAngValue : 501
-                };
+            for (var i = 0; i < this.steps_array.length; i += 1) {
+                keyArgs.ID = i;
+                keyArgs.imagesArray = loaders[this.steps_array[i] + "_loader"].images;
+                keyArgs.left = key_initial_offset + i * key_distance;
 
-                globalKnobArgs.onValueSet = that.globalKnobCallback();
+                // Highlights on the keys
+                highlightArgs.ID = i + '_hl';
+                highlightArgs.left = keyArgs.left + 1;
+                
+                // Create the key
+                this.keys[i] = new Button(keyArgs);
+                // Create the highlight
+                this.highlights[i] = new Background(highlightArgs);
+                
+                // Parameters for the play keys, we hijack the key ones
+                keyArgs.imagesArray = loaders[this.steps_array[i] + "_pl_loader"].images;
+                keyArgs.ID = keyArgs.ID + "_pl";
+                
+                // Create the play key
+                this.playKeys[i] = new Button(keyArgs);
 
-                for (var i = 0; i < global_knob_names.length; i ++) {
-                    globalKnobArgs.ID = global_knob_names[i].ID;
-                    globalKnobArgs.top = global_knob_names[i].top;
-                    globalKnobArgs.left = global_knob_names[i].left;
-                    that.globalKnobs[i] = new RotKnob(globalKnobArgs);
-                    that.ui.addElement(that.globalKnobs[i],  {zIndex: 10});
+                // Add the created elements
+                this.ui.addElement(this.keys[i], {zIndex: 5});
+                this.ui.addElement(this.playKeys[i], {zIndex: 5});
+                this.ui.addElement(this.highlights[i], {zIndex: 10});
+
+                // Display the highlight for the current key.
+                if (i !== this.currentKey) {
+                    this.ui.setVisible(highlightArgs.ID, false);
                 }
-
-                // PIANO ROLL
-           
-
-                var  pianoKeyData = [
-                    { ID: "0",   image_ld: "tone_right_loader", left: 73 },
-                    { ID: "1",  image_ld: "semitone_loader", left: 91 },
-                    { ID: "2",   image_ld: "tone_both_loader", left: 97 },
-                    { ID: "3",  image_ld: "semitone_loader",  left: 115 },
-                    { ID: "4",   image_ld: "tone_left_loader", left: 121 },
-                    { ID: "5",   image_ld: "tone_right_loader", left: 144 },
-                    { ID: "6",  image_ld: "semitone_loader", left: 162 },
-                    { ID: "7",   image_ld: "tone_both_loader", left: 168 },
-                    { ID: "8",  image_ld: "semitone_loader", left: 186 },
-                    { ID: "9",   image_ld: "tone_both_loader", left: 192 },
-                    { ID: "10", image_ld: "semitone_loader", left: 210 },
-                    { ID: "11",  image_ld: "tone_left_loader", left: 216 },
-                    { ID: "12",  image_ld: "tone_right_loader", left: 239 },
-                    { ID: "13", image_ld: "semitone_loader", left: 257},
-                    { ID: "14",  image_ld: "tone_both_loader", left: 263 },
-                    { ID: "15", image_ld: "semitone_loader", left: 280 },
-                    { ID: "16",  image_ld: "tone_left_loader", left: 286 },
-                    { ID: "17",  image_ld: "tone_right_loader", left: 310 },
-                    { ID: "18", image_ld: "semitone_loader", left: 328 },
-                    { ID: "19",  image_ld: "tone_both_loader", left: 334 },
-                    { ID: "20", image_ld: "semitone_loader", left: 352 },
-                    { ID: "21",  image_ld: "tone_both_loader", left: 358 },
-                    { ID: "22", image_ld: "semitone_loader", left: 376 },
-                    { ID: "23",  image_ld: "tone_left_loader", left: 382 },
-                ];
-
-                var pianoKeyArgs = {
-                    top: 276,
-                    preserveBg: false,
-                    isClickable: true,
-                    onValueSet: that.pianoCallback()
-                };
-
-                var pianoZIndex;
-
-                for (var k = 0; k < that.keys.length; k += 1) {
-                    for (var i = 0; i < pianoKeyData.length; i += 1) {
-                        pianoZIndex = 11;
-                        pianoKeyArgs.ID = pianoKeyData[i].ID + "_" + k;
-                        pianoKeyArgs.left = pianoKeyData[i].left;
-                        pianoKeyArgs.imagesArray = loaders[pianoKeyData[i].image_ld].images;
-                        if (pianoKeyData[i].image_ld === "semitone_loader") {
-                            pianoZIndex = 12;
-                        }
-
-                        if (that.pianoRollKeys[k] === undefined) {
-                            that.pianoRollKeys[k] = [];
-                        }
-
-                        that.pianoRollKeys[k].push(new Button(pianoKeyArgs));
-                        that.ui.addElement(that.pianoRollKeys[k][i], {zIndex: pianoZIndex});
-                        if (k !== that.currentKey) {
-                            that.ui.setVisible(pianoKeyArgs.ID, false);
-                        }
-                    }
-                }
-
-
-                //debugger;
-                that.ADNonDescript = new AudioDataNonDescript();
-                that.ADNonDescript.init({sampleRate: 44100});
-                that.ADNonDescript.setBypass (false);
-
-                // Start with play = off
-                that.ui.setValue('PlayButton', 'buttonvalue', 0);
-                // Tempo = 120
-                that.ui.setValue('Tempo', 'knobvalue', 0.5);
-                that.ui.refresh();
-
+                
+                // Play keys are invisible by default. They become visible in
+                // sequencer mode.
+                this.ui.setVisible (keyArgs.ID, false);
             }
+
+            // BYPASS / PLAY / REPEAT BUTTONS
+
+            var bpArgs = {
+                top: 153,
+                preserveBg: false,
+                isClickable: true
+            };
+
+            bpArgs.ID = "PlayButton";
+            bpArgs.left = 260;
+            bpArgs.imagesArray = loaders["play_loader"].images;
+            this.bpButtons['play'] = new Button(bpArgs);
+            bpArgs.ID = "StopButton";
+            bpArgs.left = 179;
+            bpArgs.imagesArray = loaders["stop_loader"].images;
+            bpArgs.onValueSet = this.bpCallback.bind(MORNINGSTAR);
+            this.bpButtons['stop'] = new Button(bpArgs);
+            bpArgs.ID = "RestartButton";
+            bpArgs.left = 343;
+            bpArgs.imagesArray = loaders["restart_loader"].images;
+            bpArgs.onValueSet = this.rsCallback.bind(MORNINGSTAR);
+            this.bpButtons['restart'] = new Button(bpArgs);
+
+            this.ui.addElement(this.bpButtons['play'], {zIndex: 3});
+            this.ui.addElement(this.bpButtons['stop'], {zIndex: 3});
+            this.ui.addElement(this.bpButtons['restart'], {zIndex: 3});
+
+            // Cascading here; since the buttons are mutually excusive, we will
+            // need only a callback function.
+            this.ui.connectSlots ("PlayButton", "buttonvalue", "StopButton", "buttonvalue", {callback: function (value) {return 1-value;}});
+            this.ui.connectSlots ("StopButton", "buttonvalue", "PlayButton", "buttonvalue", {callback: function (value) {return 1-value;}});
+
+            /* KNOBS */
+
+            // INSTRUMENT (WHITE) KNOBS
+
+            var  instr_knob_names = [{ID: "Resonance", top: 255, left: 820},
+                                     {ID: "Release", top: 61, left: 820},
+                                     {ID: "Cutoff",  top: 255, left: 641},
+                                     {ID: "Portamento", top: 61, left: 641},
+                                     {ID: "Envelope", top: 61, left: 463}];
+
+            var instrKnobArgs = {
+                image : loaders["white_knob_loader"].images[0],
+                sensitivity : 5000,
+                isClickable: true,
+                preserveBg: false,
+                initAngValue: 270,
+                angSteps : 127,
+                startAngValue: 218,
+                stopAngValue : 501
+            };
+
+            instrKnobArgs.onValueSet = this.instrKnobCallback.bind(MORNINGSTAR);
+
+            for (var i = 0; i < instr_knob_names.length; i ++) {
+                instrKnobArgs.ID = instr_knob_names[i].ID;
+                instrKnobArgs.top = instr_knob_names[i].top;
+                instrKnobArgs.left = instr_knob_names[i].left;
+                this.instrKnobs[i] = new RotKnob(instrKnobArgs);
+                this.ui.addElement(this.instrKnobs[i],  {zIndex: 10});
+            }
+
+            // GLOBAL (BLACK) KNOBS
+
+            var  global_knob_names = [{ID: "Distortion", top: 238, left: 448},
+                                      {ID: "Reverb", top: 240, left: 530},
+                                      {ID: "Tempo", top: 327, left: 449},
+                                      {ID: "Volume", top: 327, left: 527},
+                                      {ID: "Velocity", top: 155, left: 78}
+                                      ];
+
+            var globalKnobArgs = {
+                image : loaders["black_knob_loader"].images[0],
+                sensitivity : 5000,
+                isClickable: true,
+                initAngValue: 270,
+                angSteps : 120,
+                startAngValue: 218,
+                stopAngValue : 501
+            };
+
+            globalKnobArgs.onValueSet = this.globalKnobCallback.bind(MORNINGSTAR);
+
+            for (var i = 0; i < global_knob_names.length; i ++) {
+                globalKnobArgs.ID = global_knob_names[i].ID;
+                globalKnobArgs.top = global_knob_names[i].top;
+                globalKnobArgs.left = global_knob_names[i].left;
+                this.globalKnobs[i] = new RotKnob(globalKnobArgs);
+                this.ui.addElement(this.globalKnobs[i],  {zIndex: 10});
+            }
+
+            // PIANO ROLL
+
+            var  pianoKeyData = [
+                { ID: "0",   image_ld: "tone_right_loader", left: 73 },
+                { ID: "1",  image_ld: "semitone_loader", left: 91 },
+                { ID: "2",   image_ld: "tone_both_loader", left: 97 },
+                { ID: "3",  image_ld: "semitone_loader",  left: 115 },
+                { ID: "4",   image_ld: "tone_left_loader", left: 121 },
+                { ID: "5",   image_ld: "tone_right_loader", left: 144 },
+                { ID: "6",  image_ld: "semitone_loader", left: 162 },
+                { ID: "7",   image_ld: "tone_both_loader", left: 168 },
+                { ID: "8",  image_ld: "semitone_loader", left: 186 },
+                { ID: "9",   image_ld: "tone_both_loader", left: 192 },
+                { ID: "10", image_ld: "semitone_loader", left: 210 },
+                { ID: "11",  image_ld: "tone_left_loader", left: 216 },
+                { ID: "12",  image_ld: "tone_right_loader", left: 239 },
+                { ID: "13", image_ld: "semitone_loader", left: 257},
+                { ID: "14",  image_ld: "tone_both_loader", left: 263 },
+                { ID: "15", image_ld: "semitone_loader", left: 280 },
+                { ID: "16",  image_ld: "tone_left_loader", left: 286 },
+                { ID: "17",  image_ld: "tone_right_loader", left: 310 },
+                { ID: "18", image_ld: "semitone_loader", left: 328 },
+                { ID: "19",  image_ld: "tone_both_loader", left: 334 },
+                { ID: "20", image_ld: "semitone_loader", left: 352 },
+                { ID: "21",  image_ld: "tone_both_loader", left: 358 },
+                { ID: "22", image_ld: "semitone_loader", left: 376 },
+                { ID: "23",  image_ld: "tone_left_loader", left: 382 },
+            ];
+
+            var pianoKeyArgs = {
+                top: 276,
+                preserveBg: false,
+                isClickable: true,
+                onValueSet: this.pianoCallback.bind(MORNINGSTAR)
+            };
+
+            var pianoZIndex;
+
+            for (var k = 0; k < this.keys.length; k += 1) {
+                for (var i = 0; i < pianoKeyData.length; i += 1) {
+                    pianoZIndex = 11;
+                    pianoKeyArgs.ID = pianoKeyData[i].ID + "_" + k;
+                    pianoKeyArgs.left = pianoKeyData[i].left;
+                    pianoKeyArgs.imagesArray = loaders[pianoKeyData[i].image_ld].images;
+                    if (pianoKeyData[i].image_ld === "semitone_loader") {
+                        pianoZIndex = 12;
+                    }
+
+                    if (this.pianoRollKeys[k] === undefined) {
+                        this.pianoRollKeys[k] = [];
+                    }
+
+                    this.pianoRollKeys[k].push(new Button(pianoKeyArgs));
+                    this.ui.addElement(this.pianoRollKeys[k][i], {zIndex: pianoZIndex});
+                    if (k !== this.currentKey) {
+                        this.ui.setVisible(pianoKeyArgs.ID, false);
+                    }
+                }
+            }
+
+            this.ADNonDescript = new AudioDataNonDescript();
+            this.ADNonDescript.init({sampleRate: 44100});
+            this.ADNonDescript.setBypass (false);
+
+            // Start with play = off
+            this.ui.setValue('PlayButton', 'buttonvalue', 0);
+            // Tempo = 120
+            this.ui.setValue('Tempo', 'knobvalue', 0.5);
+            this.ui.refresh();
+
+            
         }
         
         MORNINGSTAR.init = function () {
@@ -485,23 +521,26 @@
             var CWrapper = K2WRAPPER.createWrapper("CANVAS_WRAPPER",
                                                         {canvas: plugin_canvas}
                                                         );
+                                                            
             this.ui = new UI (plugin_canvas, CWrapper, {breakOnFirstEvent: true});
-
-            this.steps_array = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16"];
-            this.sequenceStep = -1;
-            this.sequencePrev = -1;
+            
             var imageResources = [];
-
             var mulArgs = { multipleImages: [],
-                            onComplete: this.afterLoading(),
-                            onError: this.logError
+                            onComplete: this.afterLoading.bind(MORNINGSTAR),
+                            onError: this.logError.bind(MORNINGSTAR)
             }
 
             // Load keys
 
+            // input / output keys
             for (var i = 0; i < this.steps_array.length; i += 1) {
-                imageResources = ["Keys/" + this.steps_array[i] + "_inactive.png", "Keys/" + this.steps_array[i] + "_active.png", "Keys/" + this.steps_array[i] + "_playing.png"];
+                imageResources = ["Keys/" + this.steps_array[i] + "_inactive.png", "Keys/" + this.steps_array[i] + "_active.png"];
                 mulArgs.multipleImages.push ({ID: this.steps_array[i] + "_loader", imageNames : imageResources});
+            }
+            // play keys
+            for (var i = 0; i < this.steps_array.length; i += 1) {
+                imageResources = ["Keys/" + this.steps_array[i] + "_playing.png"];
+                mulArgs.multipleImages.push ({ID: this.steps_array[i] + "_pl_loader", imageNames : imageResources});
             }
 
             // Load key highlight
