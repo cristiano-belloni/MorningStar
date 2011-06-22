@@ -21,6 +21,28 @@
 
         // This should fix "console not defined" problem.
         if (typeof console=="undefined"){console={log:function(A){var B=false;if(B){alert(A)}}}}
+  
+        // Function.prototype.bind polyfill
+  	if ( !Function.prototype.bind ) {
+  	 
+  	  Function.prototype.bind = function( obj ) {
+  	    if(typeof this !== 'function') // closest thing possible to the ECMAScript 5 internal IsCallable function
+  	      throw new TypeError('Function.prototype.bind - what is trying to be bound is not callable');
+  	 
+  	    var slice = [].slice,
+  	        args = slice.call(arguments, 1),
+  	        self = this,
+  	        nop = function () {},
+  	        bound = function () {
+  	          return self.apply( this instanceof nop ? this : ( obj || {} ),
+  	                              args.concat( slice.call(arguments) ) );   
+  	        };
+  	 
+  	    bound.prototype = this.prototype;
+  	 
+  	    return bound;
+  	  };
+  	}
         
         var MORNINGSTAR = {};
 
@@ -31,28 +53,65 @@
         // CALLBACKS
         
         // PLAY / STOP BUTTON
-        MORNINGSTAR.uiPlayStart = function () {
+        MORNINGSTAR.uiPlayStartStop = function (clickable, states) {
             // Sequencer is starting, set the unclickable controls.
-            // that.setUnclickableStart();
-            // Allow keys' third state.
-            // that.initKeysSeqStart();
-            // that.keys[i].setStatesNumber(3);
+            
+            // Keys
+            for (var i = 0, len = this.steps_array.length; i < len; i+=1) {
+                this.keys[i].setClickable (clickable);
+                // Allow keys' third state.
+                this.keys[i].setStatesNumber(states);
+            }
+            
+            // Piano Roll
+            for (var i = 0; i < this.pianoRollKeys[this.currentKey].length; i+=1) {
+                this.pianoRollKeys[this.currentKey][i].setClickable (clickable);
+            }
         }
         
+        /*if we're at the start pos = -1, we do not need to restore anything. we need to save position (pos + 1) = 0 and paint position 0.
+          if we're at 0, we need to restore pos, increment position to 1, save position 1 and paint position 1
+          if we're at the end (15), we need to restore position 15, increment to position 0 (%16) save position 0 etc*/
+        
+        MORNINGSTAR.sequencerRoutine = function () {
+            
+            if (MORNINGSTAR.sequenceStep !== -1) {
+                //restore position
+            }
+            //increment position and save the current position
+            //draw position            
+        }
+        
+        MORNINGSTAR.sequencerTimerStart = function () {
+            
+            var interval = 60000 / this.tempo_value;
+            console.log ("Setting the timer to ", interval, " seconds");
+            this.sequencerTimer = setInterval(this.sequencerRoutine, interval);
+            
+        }
+        
+        MORNINGSTAR.sequencerTimerStop = function () {
+            clearInterval(this.sequencerTimer);
+        }
         
         MORNINGSTAR.bpCallback = function ()  {
             var that = this;
             return function (slot, value, elName) {
                 if (value === 1) {
+                    // Stop the timer
+                    that.sequencerTimerStop();
+                    
+                    // Pepare UI for stop mode
                     console.log ("Stopping the sequencer");
+                    that.uiPlayStartStop(true, 2);
                 }
                 else if (value === 0) {
+                    // Pepare UI for play mode
                     console.log ("Starting the sequencer");
+                    that.uiPlayStartStop(false, 3);
                     
-                    // Start the timers
-                    // that.sequencerTimersStart();
-
-
+                    // Start the timer
+                    that.sequencerTimerStart();
                 }
                 else {
                     // throw
@@ -173,14 +232,14 @@
         MORNINGSTAR.globalKnobCallback = function () {
             var that = this;
             return function (slot, value, ID) {
-                var knobname = slot;
-                // Interpolate the globalKnobs value in the integer range [0,127]
-                var interpolated_value = Math.round(value * 127);
-                var functionName = "set" + ID;
-                console.log ("Calling ADBeesWax[" + functionName + "] with value " + value + "-->" + interpolated_value);
-                //ADBeesWax[functionName](interpolated_value);*/
+                if (ID === "Tempo") {
+                    // Interpolate the globalKnobs value in the integer range [60,180]
+                    // LINEAR INTERPOLATION: x := (c - a) * (z - y) / (b - a) + y
+                    // a = 0, b = 1, z = 180, y = 60
+                    that.tempo_value = Math.round(value *  120 + 60);
+                    console.log ("TEMPO set to ", that.tempo_value);
+                }
                 that.ui.refresh();
-
             };
         };
 
@@ -239,7 +298,7 @@
 
                     highlightArgs.ID = i + '_hl';
                     highlightArgs.left = keyArgs.left + 1;
-                    // TODO window will become that or Beeswax
+                    
                     that.keys[i] = new Button(keyArgs);
                     that.keys[i].setStatesNumber(2);
                     that.highlights[i] = new Background(highlightArgs);
@@ -253,7 +312,6 @@
                 }
 
                 // BYPASS / PLAY / REPEAT BUTTONS
-              
 
                 var bpArgs = {
                     top: 153,
@@ -284,10 +342,6 @@
                 // need only a callback function.
                 that.ui.connectSlots ("PlayButton", "buttonvalue", "StopButton", "buttonvalue", {callback: function (value) {return 1-value;}});
                 that.ui.connectSlots ("StopButton", "buttonvalue", "PlayButton", "buttonvalue", {callback: function (value) {return 1-value;}});
-
-                // Start with play = off
-                that.ui.setValue('PlayButton', 'buttonvalue', 0);
-
 
                 /* KNOBS */
 
@@ -334,7 +388,7 @@
                     sensitivity : 5000,
                     isClickable: true,
                     initAngValue: 270,
-                    angSteps : 127,
+                    angSteps : 120,
                     startAngValue: 218,
                     stopAngValue : 501
                 };
@@ -416,6 +470,10 @@
                 that.ADNonDescript.init({sampleRate: 44100});
                 that.ADNonDescript.setBypass (false);
 
+                // Start with play = off
+                that.ui.setValue('PlayButton', 'buttonvalue', 0);
+                // Tempo = 120
+                that.ui.setValue('Tempo', 'knobvalue', 0.5);
                 that.ui.refresh();
 
             }
@@ -430,6 +488,8 @@
             this.ui = new UI (plugin_canvas, CWrapper, {breakOnFirstEvent: true});
 
             this.steps_array = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16"];
+            this.sequenceStep = -1;
+            this.sequencePrev = -1;
             var imageResources = [];
 
             var mulArgs = { multipleImages: [],
