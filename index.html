@@ -74,6 +74,11 @@
                 this.ui.setClickable(this.keys[i].ID, state);
             }
             
+            // Highlights
+            for (var i = 0, len = this.steps_array.length; i < len; i+=1) {
+                this.ui.setClickable(this.highlights[i].ID, state);
+            }
+            
             // Piano Roll
             for (var i = 0; i < this.pianoRollKeys[this.currentKey].length; i+=1) {
                 this.pianoRollKeys[this.currentKey][i].setClickable (state);
@@ -95,10 +100,9 @@
             
             var offNumber = 50000;
 
-            this.ADNonDescript.noteOff();
-            
             // Play note
             if (this.keys[(this.sequenceStep + 1) % 16].getValue("buttonvalue") === 1) {
+                this.ADNonDescript.noteOff();
                 for (var i = 0; i < this.pianoRollKeys[(this.sequenceStep + 1) % 16].length; i+=1) {
                     if (this.pianoRollKeys[(this.sequenceStep + 1) % 16][i].getValue ("buttonvalue") === 1) {
                         offNumber = i - 33;
@@ -126,6 +130,7 @@
             this.ui.setVisible(this.keys[this.sequenceStep].ID, false);
             //play key becomes visible
             this.ui.setVisible(this.playKeys[this.sequenceStep].ID, true);
+            // This could be conditional, if refresh() takes too much time.
             this.ui.refresh();
             
         }
@@ -223,18 +228,10 @@
             this.ui.refresh();
         }
         
-        MORNINGSTAR.keyCallback = function (slot, value, ID) {
-
-            var note = parseInt(ID, 10);
-            if (value === 0) {
-                console.log ("Unset step number " + ID);
-            }
-            else if (value === 1) {
-                console.log ("Set step number " + ID);
-            }
-            else {
-                //throw!
-            }
+        MORNINGSTAR.hlCallback = function (slot, value, ID) {
+            // Change the highlighted slot
+            var note = parseInt(ID.split('_')[0], 10);
+            
             if (this.currentKey !== note) {
                 // currentKey has changed. 
                 // If a note is on, it shall be off in the synth (but still on visually).
@@ -251,11 +248,29 @@
                     this.ui.setVisible(i + '_' + note, true);
                 }
                 this.ui.setVisible(this.currentKey + '_hl', false);
+                // setVisible = false makes it unclickable. Make it clickable again.
+                this.ui.setClickable(this.currentKey + '_hl', true);
                 this.ui.setVisible(note + '_hl', true);
                 this.currentKey = note;
 
             }
             this.ui.refresh();
+        }
+        
+        MORNINGSTAR.keyCallback = function (slot, value, ID) {
+
+            var note = parseInt(ID, 10);
+            if (value === 0) {
+                console.log ("Unset step number " + ID);
+            }
+            else if (value === 1) {
+                console.log ("Set step number " + ID);
+            }
+            else {
+                //throw!
+            }
+            // Call the highlight callback, as if it was triggered.
+            this.hlCallback(slot, value, ID + '_hl');
         };
         
         
@@ -301,8 +316,10 @@
             var highlightArgs = {
                 left: 0,
                 top: 445,
-                image: loaders["highlight_loader"].images[0]
-                }
+                image: loaders["highlight_loader"].images[0],
+                isClickable: true,
+                onValueSet: this.hlCallback.bind(MORNINGSTAR)
+            };
 
             var keyArgs = {
                 /*ID: "note",*/
@@ -322,6 +339,8 @@
                 // Highlights on the keys
                 highlightArgs.ID = i + '_hl';
                 highlightArgs.left = keyArgs.left + 1;
+                highlightArgs.ROITop = keyArgs.top - 23;
+                highlightArgs.ROIHeight = 20;
                 
                 // Create the key
                 this.keys[i] = new Button(keyArgs);
@@ -344,6 +363,7 @@
                 if (i !== this.currentKey) {
                     this.ui.setVisible(highlightArgs.ID, false);
                 }
+                this.ui.setClickable(highlightArgs.ID, true);
                 
                 // Play keys are invisible by default. They become visible in
                 // sequencer mode.
@@ -510,6 +530,20 @@
             this.ui.setValue('PlayButton', 'buttonvalue', 0);
             // Tempo = 120
             this.ui.setValue('Tempo', 'knobvalue', 0.5);
+            /*
+            this.release = 100;
+            this.cutoff = 50;
+            this.envmod = 80;
+            this.resonance = 100;
+            this.volume = 100;
+            this.portamento = 64; */
+            this.ui.setValue('Release', 'knobvalue', 100/127);
+            this.ui.setValue('Cutoff', 'knobvalue', 50/127);
+            this.ui.setValue('Envelope', 'knobvalue', 80/127);
+            this.ui.setValue('Resonance', 'knobvalue', 100/127);
+            this.ui.setValue('Volume', 'knobvalue', 100/127);
+            this.ui.setValue('Portamento', 'knobvalue', 64/127);
+            
             this.ui.refresh();
 
             
