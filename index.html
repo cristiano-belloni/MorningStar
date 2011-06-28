@@ -47,15 +47,20 @@
         var MORNINGSTAR = {
             steps_array : ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16"],
             sequenceStep : -1,
-            //background : undefined,
+            sequenceStepGroup: 0,
+            status: {
+                steps: []                
+            },
+            STEPS_NUM : 64,
+            VELOCITY_DEFAULT : 64,
             keys : [],
             playKeys : [],
             highlights : [],
             instrKnobs : [],
             globalKnobs : [],
-            pianoRollKeys : {},
+            pianoRollKeys : [],
             bpButtons : {},
-            currentKey : 0
+            currentStep : 0
         };
 
         MORNINGSTAR.logError = function (status) {
@@ -80,8 +85,8 @@
             }
             
             // Piano Roll
-            for (var i = 0; i < this.pianoRollKeys[this.currentKey].length; i+=1) {
-                this.pianoRollKeys[this.currentKey][i].setClickable (state);
+            for (var i = 0; i < this.pianoRollKeys.length; i+=1) {
+                this.pianoRollKeys[i].setClickable (state);
             }
             
             if ((state === true) && (this.sequenceStep !== -1)) {
@@ -92,44 +97,41 @@
             }
         }
         
-        /*if we're at the start pos = -1, we do not need to restore anything. we need to save position (pos + 1) = 0 and paint position 0.
-          if we're at 0, we need to restore pos, increment position to 1, save position 1 and paint position 1
-          if we're at the end (15), we need to restore position 15, increment to position 0 (%16) save position 0 etc*/
         
         MORNINGSTAR.sequencerRoutine = function () {
             
-            var offNumber = 50000;
+            var step = this.sequenceStep;
+            // TODO this will be "length" no more.
+            var nextStep = (step + 1) % this.keys.length;
 
             // Play note
-            if (this.keys[(this.sequenceStep + 1) % 16].getValue("buttonvalue") === 1) {
+            // TODO this will become "active"
+            if (this.keys[nextStep].getValue("buttonvalue") === 1) {
+                // If the next step is active, turn the playing note off.
                 this.ADNonDescript.noteOff();
-                for (var i = 0; i < this.pianoRollKeys[(this.sequenceStep + 1) % 16].length; i+=1) {
-                    if (this.pianoRollKeys[(this.sequenceStep + 1) % 16][i].getValue ("buttonvalue") === 1) {
-                        offNumber = i - 33;
-                        break;
-                    }
+                // If there really is a note (not a pause), play it.
+                if (this.status.steps[nextStep].note !== -1) {
+                    this.ADNonDescript.noteOn(this.status.steps[nextStep].note - 33, 64);
                 }
-            }
             
-            if (offNumber !== 50000) {
-                this.ADNonDescript.noteOn(offNumber, 64);
             }
             
             if (this.sequenceStep !== -1) {
                 //Restore previous key
                 //play key becomes invisible
-                this.ui.setVisible(this.playKeys[this.sequenceStep].ID, false);
+                this.ui.setVisible(this.playKeys[step].ID, false);
                 //i/o key becomes visible
-                this.ui.setVisible(this.keys[this.sequenceStep].ID, true);
+                this.ui.setVisible(this.keys[step].ID, true);
                 //and unclickable, again
-                this.ui.setClickable(this.keys[this.sequenceStep].ID, false);
+                this.ui.setClickable(this.keys[step].ID, false);
             }
-            //increment position and draw a play key
-            this.sequenceStep = (this.sequenceStep + 1) % this.keys.length;
+            
             //i/o key is invisible
-            this.ui.setVisible(this.keys[this.sequenceStep].ID, false);
+            this.ui.setVisible(this.keys[nextStep].ID, false);
             //play key becomes visible
-            this.ui.setVisible(this.playKeys[this.sequenceStep].ID, true);
+            this.ui.setVisible(this.playKeys[nextStep].ID, true);
+            //increment position
+            this.sequenceStep = nextStep;
             // This could be conditional, if refresh() takes too much time.
             this.ui.refresh();
             
@@ -191,35 +193,59 @@
             
         }
         
-        MORNINGSTAR.pianoCallback = function (slot, value, elName)  {
-            
-            var noteNumber = parseInt(elName.split('_')[0], 10) - 33;
-            var keySelected = parseInt(elName.split('_')[1], 10);
-            if (this.currentKey !== keySelected) {
-                // throw
-            }
-            var velocity = 63;
+        MORNINGSTAR.pianoSetUnique = function (toSet) {
+            this.pianoUnsetAll.call(this, toSet);
+            this.pianoSetNote.call(this, toSet);
+        }
+        
+        MORNINGSTAR.pianoSetNote = function (toSet) {
 
-            if (value === 1) {
-                // Set the others to off.
-                for (var i = 0; i < this.pianoRollKeys[keySelected].length; i+=1) {
-                    if (this.pianoRollKeys[keySelected][i].ID !== elName) {
-                        if (this.pianoRollKeys[keySelected][i].getValue ("buttonvalue") === 1) {
-                            // Turn it off visually using the UI. Do not invoke callbacks.
-                            this.ui.setValue(this.pianoRollKeys[keySelected][i].ID, 'buttonvalue', 0, undefined, false);
-                            // Turn it off manually, because callback is not invoked again.
-                            var offNumber = parseInt(this.pianoRollKeys[keySelected][i].ID.split('_')[0],10) - 33;
-                            console.log ("Note ", elName, " number ", noteNumber, " for key ", keySelected, " is OFF!");
-                            this.ADNonDescript.noteOff();
-                        }
+            // Turn it on on the UI. Do not invoke callbacks.
+            this.ui.setValue(toSet, 'buttonvalue', 1, undefined, false);
+                        
+            
+        }
+        
+        MORNINGSTAR.pianoUnsetAll = function (dontUnset) {
+            for (var i = 0; i < this.pianoRollKeys.length; i+=1) {
+                // Unset all the notes, except the one called dontUnset
+                if (this.pianoRollKeys[i].ID !== dontUnset) {
+                    if (this.pianoRollKeys[i].getValue ("buttonvalue") === 1) {
+                        // Turn it off on the UI. Do not invoke callbacks.
+                        this.ui.setValue(this.pianoRollKeys[i].ID, 'buttonvalue', 0, undefined, false);
                     }
                 }
-                console.log ("Note ", elName, " number ", noteNumber, " for key ", keySelected, " is ON!");
-                this.ADNonDescript.noteOn(noteNumber, velocity);
+            }            
+        }
+        
+        MORNINGSTAR.pianoCallback = function (slot, value, elName)  {
+            
+            var noteNumber = parseInt(elName.split('_')[0], 10);
+            
+            // This is gonna be deleted and real velocity used TODO
+            var velocity = this.VELOCITY_DEFAULT;
+            
+            // Piano keys are exclusive, so turn off the current note playing
+            this.ADNonDescript.noteOff();
+
+            if (value === 1) {
+                // Set a new key in the status
+                this.status.steps[this.currentStep].note = noteNumber;
+                
+                // Set the others to off.
+                this.pianoSetUnique.call(this,elName);
+                
+                // Play the note in the synth
+                this.ADNonDescript.noteOn(noteNumber - 33, velocity);
+                
+                console.log ("Note ", elName, " number ", noteNumber, " for key ", this.currentStep, " is ON!");
             }
             else if (value === 0) {
-                console.log ("Note ", elName, " number ", noteNumber, " for key ", keySelected, " is OFF!");
-                this.ADNonDescript.noteOff(noteNumber, velocity);
+                
+                // Unset the key in the status
+                this.status.steps[this.currentStep].note = -1;
+                
+                console.log ("Note ", elName, " number ", noteNumber, " for key ", this.currentStep, " is OFF!");
             }
             else {
                 // throw
@@ -230,40 +256,42 @@
         
         MORNINGSTAR.hlCallback = function (slot, value, ID) {
             // Change the highlighted slot
-            var note = parseInt(ID.split('_')[0], 10);
+            var newStep = parseInt(ID.split('_')[0], 10);
             
-            if (this.currentKey !== note) {
-                // currentKey has changed. 
-                // If a note is on, it shall be off in the synth (but still on visually).
-                for (var i = 0; i < this.pianoRollKeys[this.currentKey].length; i+=1) {
-                    if (this.pianoRollKeys[this.currentKey][i].getValue ("buttonvalue") === 1) {
-                       this.ADNonDescript.noteOff();
-                    }
+            if (this.currentStep !== newStep) {
+                
+                // currentStep will change. Send a noteOff to truncate playing.
+                this.ADNonDescript.noteOff();
+                
+                // Display the correct note if there is one (aka not -1)
+                if (this.status.steps[newStep].note !== -1) {
+                    this.pianoSetUnique.call(this, this.status.steps[newStep].note + '_pr');
                 }
-
-                // Set the current piano roll as hidden,
-                // and the new piano roll as visible
-                for (var i = 0; i < this.pianoRollKeys[this.currentKey].length; i += 1) {
-                    this.ui.setVisible(i + '_' + this.currentKey, false);
-                    this.ui.setVisible(i + '_' + note, true);
+                // Else, erase every note on the piano roll.
+                else {
+                    this.pianoUnsetAll.call(this, null);
                 }
-                this.ui.setVisible(this.currentKey + '_hl', false);
+                
+                // Set current highlight as invisible
+                this.ui.setVisible(this.currentStep + '_hl', false);
                 // setVisible = false makes it unclickable. Make it clickable again.
-                this.ui.setClickable(this.currentKey + '_hl', true);
-                this.ui.setVisible(note + '_hl', true);
-                this.currentKey = note;
-
+                this.ui.setClickable(this.currentStep + '_hl', true);
+                // Set new highlight as visible, and update currentStep
+                this.ui.setVisible(newStep + '_hl', true);
+                this.currentStep = newStep;
+          
             }
             this.ui.refresh();
         }
         
         MORNINGSTAR.keyCallback = function (slot, value, ID) {
 
-            var note = parseInt(ID, 10);
             if (value === 0) {
+                this.status.steps[parseInt(ID,10)].active = false;
                 console.log ("Unset step number " + ID);
             }
             else if (value === 1) {
+                this.status.steps[parseInt(ID,10)].active = true;
                 console.log ("Set step number " + ID);
             }
             else {
@@ -360,7 +388,7 @@
                 this.ui.addElement(this.highlights[i], {zIndex: 10});
 
                 // Display the highlight for the current key.
-                if (i !== this.currentKey) {
+                if (i !== this.currentStep) {
                     this.ui.setVisible(highlightArgs.ID, false);
                 }
                 this.ui.setClickable(highlightArgs.ID, true);
@@ -465,30 +493,30 @@
             // PIANO ROLL
 
             var  pianoKeyData = [
-                { ID: "0",   image_ld: "tone_right_loader", left: 73 },
-                { ID: "1",  image_ld: "semitone_loader", left: 91 },
-                { ID: "2",   image_ld: "tone_both_loader", left: 97 },
-                { ID: "3",  image_ld: "semitone_loader",  left: 115 },
-                { ID: "4",   image_ld: "tone_left_loader", left: 121 },
-                { ID: "5",   image_ld: "tone_right_loader", left: 144 },
-                { ID: "6",  image_ld: "semitone_loader", left: 162 },
-                { ID: "7",   image_ld: "tone_both_loader", left: 168 },
-                { ID: "8",  image_ld: "semitone_loader", left: 186 },
-                { ID: "9",   image_ld: "tone_both_loader", left: 192 },
-                { ID: "10", image_ld: "semitone_loader", left: 210 },
-                { ID: "11",  image_ld: "tone_left_loader", left: 216 },
-                { ID: "12",  image_ld: "tone_right_loader", left: 239 },
-                { ID: "13", image_ld: "semitone_loader", left: 257},
-                { ID: "14",  image_ld: "tone_both_loader", left: 263 },
-                { ID: "15", image_ld: "semitone_loader", left: 280 },
-                { ID: "16",  image_ld: "tone_left_loader", left: 286 },
-                { ID: "17",  image_ld: "tone_right_loader", left: 310 },
-                { ID: "18", image_ld: "semitone_loader", left: 328 },
-                { ID: "19",  image_ld: "tone_both_loader", left: 334 },
-                { ID: "20", image_ld: "semitone_loader", left: 352 },
-                { ID: "21",  image_ld: "tone_both_loader", left: 358 },
-                { ID: "22", image_ld: "semitone_loader", left: 376 },
-                { ID: "23",  image_ld: "tone_left_loader", left: 382 },
+                { ID: "0_pr",   image_ld: "tone_right_loader", left: 73 },
+                { ID: "1_pr",  image_ld: "semitone_loader", left: 91 },
+                { ID: "2_pr",   image_ld: "tone_both_loader", left: 97 },
+                { ID: "3_pr",  image_ld: "semitone_loader",  left: 115 },
+                { ID: "4_pr",   image_ld: "tone_left_loader", left: 121 },
+                { ID: "5_pr",   image_ld: "tone_right_loader", left: 144 },
+                { ID: "6_pr",  image_ld: "semitone_loader", left: 162 },
+                { ID: "7_pr",   image_ld: "tone_both_loader", left: 168 },
+                { ID: "8_pr",  image_ld: "semitone_loader", left: 186 },
+                { ID: "9_pr",   image_ld: "tone_both_loader", left: 192 },
+                { ID: "10_pr", image_ld: "semitone_loader", left: 210 },
+                { ID: "11_pr",  image_ld: "tone_left_loader", left: 216 },
+                { ID: "12_pr",  image_ld: "tone_right_loader", left: 239 },
+                { ID: "13_pr", image_ld: "semitone_loader", left: 257},
+                { ID: "14_pr",  image_ld: "tone_both_loader", left: 263 },
+                { ID: "15_pr", image_ld: "semitone_loader", left: 280 },
+                { ID: "16_pr",  image_ld: "tone_left_loader", left: 286 },
+                { ID: "17_pr",  image_ld: "tone_right_loader", left: 310 },
+                { ID: "18_pr", image_ld: "semitone_loader", left: 328 },
+                { ID: "19_pr",  image_ld: "tone_both_loader", left: 334 },
+                { ID: "20_pr", image_ld: "semitone_loader", left: 352 },
+                { ID: "21_pr",  image_ld: "tone_both_loader", left: 358 },
+                { ID: "22_pr", image_ld: "semitone_loader", left: 376 },
+                { ID: "23_pr",  image_ld: "tone_left_loader", left: 382 },
             ];
 
             var pianoKeyArgs = {
@@ -500,43 +528,28 @@
 
             var pianoZIndex;
 
-            for (var k = 0; k < this.keys.length; k += 1) {
-                for (var i = 0; i < pianoKeyData.length; i += 1) {
-                    pianoZIndex = 11;
-                    pianoKeyArgs.ID = pianoKeyData[i].ID + "_" + k;
-                    pianoKeyArgs.left = pianoKeyData[i].left;
-                    pianoKeyArgs.imagesArray = loaders[pianoKeyData[i].image_ld].images;
-                    if (pianoKeyData[i].image_ld === "semitone_loader") {
-                        pianoZIndex = 12;
-                    }
-
-                    if (this.pianoRollKeys[k] === undefined) {
-                        this.pianoRollKeys[k] = [];
-                    }
-
-                    this.pianoRollKeys[k].push(new Button(pianoKeyArgs));
-                    this.ui.addElement(this.pianoRollKeys[k][i], {zIndex: pianoZIndex});
-                    if (k !== this.currentKey) {
-                        this.ui.setVisible(pianoKeyArgs.ID, false);
-                    }
+            for (var i = 0; i < pianoKeyData.length; i += 1) {
+                pianoZIndex = 11;
+                pianoKeyArgs.ID = pianoKeyData[i].ID;
+                pianoKeyArgs.left = pianoKeyData[i].left;
+                pianoKeyArgs.imagesArray = loaders[pianoKeyData[i].image_ld].images;
+                if (pianoKeyData[i].image_ld === "semitone_loader") {
+                    pianoZIndex = 12;
                 }
+
+                this.pianoRollKeys.push(new Button(pianoKeyArgs));
+                this.ui.addElement(this.pianoRollKeys[i], {zIndex: pianoZIndex});
             }
+            
 
             this.ADNonDescript = new AudioDataNonDescript();
             this.ADNonDescript.init({sampleRate: 44100});
             this.ADNonDescript.setBypass (false);
 
-            // Start with play = off
+            // DEFAULTS
             this.ui.setValue('PlayButton', 'buttonvalue', 0);
             // Tempo = 120
             this.ui.setValue('Tempo', 'knobvalue', 0.5);
-            /*
-            this.release = 100;
-            this.cutoff = 50;
-            this.envmod = 80;
-            this.resonance = 100;
-            this.volume = 100;
-            this.portamento = 64; */
             this.ui.setValue('Release', 'knobvalue', 100/127);
             this.ui.setValue('Cutoff', 'knobvalue', 50/127);
             this.ui.setValue('Envelope', 'knobvalue', 80/127);
@@ -562,6 +575,17 @@
             var mulArgs = { multipleImages: [],
                             onComplete: this.afterLoading.bind(MORNINGSTAR),
                             onError: this.logError.bind(MORNINGSTAR)
+            }
+            
+            // Build the status array.
+            for (var i = 0; i < this.STEPS_NUM; i+=1) {
+                this.status.steps[i] = {};
+                // Not active, by default
+                this.status.steps[i].active = 0;
+                // Note = -1 means that there is no note associated with the step
+                this.status.steps[i].note = -1;
+                // This depends on the initial velocity value
+                this.status.steps[i].velocity = this.VELOCITY_DEFAULT;
             }
 
             // Load keys
