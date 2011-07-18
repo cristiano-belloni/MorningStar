@@ -16,7 +16,7 @@
     <script type="text/javascript" src="audio/ADNonDescript.js"></script>
   </head>
   <body>
-    <canvas id="plugin" width="963" height="613"></canvas>
+    <canvas id="plugin" width="920" height="574"></canvas>
     <script type="text/javascript">
 
         // This should fix "console not defined" problem.
@@ -49,7 +49,9 @@
             sequenceStep : -1,
             sequenceStepGroup: 0,
             status: {
-                steps: []                
+                steps: [],
+                numberOfPatterns : 1,
+                currentEditPattern : 0
             },
             STEPS_NUM : 64,
             VELOCITY_DEFAULT : 64,
@@ -60,6 +62,8 @@
             globalKnobs : [],
             pianoRollKeys : [],
             bpButtons : {},
+            greenLeds : [],
+            redLeds : [],
             currentStep : 0
         };
 
@@ -300,7 +304,31 @@
             // Call the highlight callback, as if it was triggered.
             this.hlCallback(slot, value, ID + '_hl');
         };
-        
+
+        MORNINGSTAR.plusCallback = function (slot, value, ID) {
+            console.log ("Calling plus callback");
+
+            // Set current LED to off
+
+            // Set current LED + 1 to on
+
+            this.ui.refresh();
+        }
+
+        MORNINGSTAR.minusCallback = function (slot, value, ID) {
+            console.log ("Calling minus callback");
+
+            // Set current LED to off
+
+            // Set current LED - 1 to on
+
+            this.ui.refresh();
+        }
+
+        MORNINGSTAR.switchCallback = function (slot, value, ID) {
+            console.log ("Calling switch callback with value ", value);
+            this.ui.refresh();
+        }
         
         MORNINGSTAR.instrKnobCallback = function (slot, value, ID) {
             // Interpolate the instrKnobs value in the integer range [0,127]
@@ -324,7 +352,7 @@
 
         MORNINGSTAR.afterLoading = function (loaders) {
       
-            var key_initial_offset = 67,
+            var key_initial_offset = 67 - 43,
                 key_distance = 55;
 
             /* BACKGROUND */
@@ -407,16 +435,16 @@
             };
 
             bpArgs.ID = "PlayButton";
-            bpArgs.left = 260;
+            bpArgs.left = 260 - 43;
             bpArgs.imagesArray = loaders["play_loader"].images;
             this.bpButtons['play'] = new Button(bpArgs);
             bpArgs.ID = "StopButton";
-            bpArgs.left = 179;
+            bpArgs.left = 179 - 43;
             bpArgs.imagesArray = loaders["stop_loader"].images;
             bpArgs.onValueSet = this.bpCallback.bind(MORNINGSTAR);
             this.bpButtons['stop'] = new Button(bpArgs);
             bpArgs.ID = "RestartButton";
-            bpArgs.left = 343;
+            bpArgs.left = 343 - 43;
             bpArgs.imagesArray = loaders["restart_loader"].images;
             bpArgs.onValueSet = this.rsCallback.bind(MORNINGSTAR);
             this.bpButtons['restart'] = new Button(bpArgs);
@@ -434,11 +462,10 @@
 
             // INSTRUMENT (WHITE) KNOBS
 
-            var  instr_knob_names = [{ID: "Resonance", top: 255, left: 820},
-                                     {ID: "Release", top: 61, left: 820},
-                                     {ID: "Cutoff",  top: 255, left: 641},
-                                     {ID: "Portamento", top: 61, left: 641},
-                                     {ID: "Envelope", top: 61, left: 463}];
+            var  instr_knob_names = [{ID: "Resonance", top: 255, left: 820 - 43},
+                                     {ID: "Release", top: 61, left: 820 - 43},
+                                     {ID: "Cutoff",  top: 255, left: 641 - 43},
+                                     {ID: "Portamento", top: 61, left: 641 - 43}];
 
             var instrKnobArgs = {
                 image : loaders["white_knob_loader"].images[0],
@@ -463,11 +490,11 @@
 
             // GLOBAL (BLACK) KNOBS
 
-            var  global_knob_names = [{ID: "Distortion", top: 238, left: 448},
-                                      {ID: "Reverb", top: 240, left: 530},
-                                      {ID: "Tempo", top: 327, left: 449},
-                                      {ID: "Volume", top: 327, left: 527},
-                                      {ID: "Velocity", top: 155, left: 78}
+            var  global_knob_names = [{ID: "Distortion", top: 238, left: 448 - 43},
+                                      {ID: "Reverb", top: 240, left: 530 - 43},
+                                      {ID: "Tempo", top: 327, left: 449 - 43},
+                                      {ID: "Volume", top: 327, left: 527 - 43},
+                                      {ID: "Velocity", top: 155, left: 78 - 43}
                                       ];
 
             var globalKnobArgs = {
@@ -490,33 +517,95 @@
                 this.ui.addElement(this.globalKnobs[i],  {zIndex: 10});
             }
 
+            // SWITCH
+            var swArgs = {
+                ID : "switch",
+                top: 69,
+                left: 414,
+                preserveBg: false,
+                isClickable: true,
+                imagesArray : loaders["switch_loader"].images,
+                onValueSet : this.switchCallback.bind(MORNINGSTAR)
+            };
+            
+            this.switchButton = new Button(swArgs);
+            this.ui.addElement(this.switchButton,  {zIndex: 10});
+
+            // PLUSMINUS
+            var pmArgs = {
+                ID:"minus_button",
+                top: 140,
+                left: 416,
+                preserveBg: false,
+                isClickable: true,
+                imagesArray : loaders["minus_loader"].images,
+                onValueSet : this.minusCallback.bind(MORNINGSTAR)
+            };
+
+            this.minusButton = new Button(pmArgs);
+            this.ui.addElement(this.minusButton,  {zIndex: 10});
+
+            pmArgs.ID = "plus_button";
+            pmArgs.left = 503;
+            pmArgs.imagesArray = loaders["plus_loader"].images;
+            pmArgs.onValueSet = this.plusCallback.bind(MORNINGSTAR);
+
+            this.plusButton = new Button(pmArgs);
+            this.ui.addElement(this.plusButton,  {zIndex: 10});
+
+            // LEDS
+            var ledArgs = {
+                preserveBg: false,
+                isClickable: false
+            };
+
+            for (var i = 0; i < 4; i += 1) {
+                // Both
+                ledArgs.left = 420 + i * 29;
+
+                // Red
+                ledArgs.imagesArray = loaders["redled_loader"].images;
+                ledArgs.top = 189;
+                ledArgs.ID = "redled_" + i;
+                this.redLeds[i] = new Button(ledArgs);
+                this.ui.addElement(this.redLeds[i],  {zIndex: 10});
+
+                // Green
+                ledArgs.imagesArray = loaders["greenled_loader"].images;
+                ledArgs.top = 166;
+                ledArgs.ID = "greenled_" + i;
+                this.greenLeds[i] = new Button(ledArgs);
+                this.ui.addElement(this.greenLeds[i],  {zIndex: 10});
+
+            }
+
             // PIANO ROLL
 
             var  pianoKeyData = [
-                { ID: "0_pr",   image_ld: "tone_right_loader", left: 73 },
-                { ID: "1_pr",  image_ld: "semitone_loader", left: 91 },
-                { ID: "2_pr",   image_ld: "tone_both_loader", left: 97 },
-                { ID: "3_pr",  image_ld: "semitone_loader",  left: 115 },
-                { ID: "4_pr",   image_ld: "tone_left_loader", left: 121 },
-                { ID: "5_pr",   image_ld: "tone_right_loader", left: 144 },
-                { ID: "6_pr",  image_ld: "semitone_loader", left: 162 },
-                { ID: "7_pr",   image_ld: "tone_both_loader", left: 168 },
-                { ID: "8_pr",  image_ld: "semitone_loader", left: 186 },
-                { ID: "9_pr",   image_ld: "tone_both_loader", left: 192 },
-                { ID: "10_pr", image_ld: "semitone_loader", left: 210 },
-                { ID: "11_pr",  image_ld: "tone_left_loader", left: 216 },
-                { ID: "12_pr",  image_ld: "tone_right_loader", left: 239 },
-                { ID: "13_pr", image_ld: "semitone_loader", left: 257},
-                { ID: "14_pr",  image_ld: "tone_both_loader", left: 263 },
-                { ID: "15_pr", image_ld: "semitone_loader", left: 280 },
-                { ID: "16_pr",  image_ld: "tone_left_loader", left: 286 },
-                { ID: "17_pr",  image_ld: "tone_right_loader", left: 310 },
-                { ID: "18_pr", image_ld: "semitone_loader", left: 328 },
-                { ID: "19_pr",  image_ld: "tone_both_loader", left: 334 },
-                { ID: "20_pr", image_ld: "semitone_loader", left: 352 },
-                { ID: "21_pr",  image_ld: "tone_both_loader", left: 358 },
-                { ID: "22_pr", image_ld: "semitone_loader", left: 376 },
-                { ID: "23_pr",  image_ld: "tone_left_loader", left: 382 },
+                { ID: "0_pr",   image_ld: "tone_right_loader", left: 73 - 43 },
+                { ID: "1_pr",  image_ld: "semitone_loader", left: 91 - 43 },
+                { ID: "2_pr",   image_ld: "tone_both_loader", left: 97  - 43},
+                { ID: "3_pr",  image_ld: "semitone_loader",  left: 115 - 43 },
+                { ID: "4_pr",   image_ld: "tone_left_loader", left: 121 - 43 },
+                { ID: "5_pr",   image_ld: "tone_right_loader", left: 144 - 43 },
+                { ID: "6_pr",  image_ld: "semitone_loader", left: 162 - 43 },
+                { ID: "7_pr",   image_ld: "tone_both_loader", left: 168 - 43 },
+                { ID: "8_pr",  image_ld: "semitone_loader", left: 186 - 43 },
+                { ID: "9_pr",   image_ld: "tone_both_loader", left: 192 - 43 },
+                { ID: "10_pr", image_ld: "semitone_loader", left: 210 - 43 },
+                { ID: "11_pr",  image_ld: "tone_left_loader", left: 216 - 43 },
+                { ID: "12_pr",  image_ld: "tone_right_loader", left: 239 - 43 },
+                { ID: "13_pr", image_ld: "semitone_loader", left: 257 - 43},
+                { ID: "14_pr",  image_ld: "tone_both_loader", left: 263 - 43 },
+                { ID: "15_pr", image_ld: "semitone_loader", left: 280 - 43 },
+                { ID: "16_pr",  image_ld: "tone_left_loader", left: 286 - 43 },
+                { ID: "17_pr",  image_ld: "tone_right_loader", left: 310 - 43 },
+                { ID: "18_pr", image_ld: "semitone_loader", left: 328 - 43 },
+                { ID: "19_pr",  image_ld: "tone_both_loader", left: 334 - 43 },
+                { ID: "20_pr", image_ld: "semitone_loader", left: 352 - 43 },
+                { ID: "21_pr",  image_ld: "tone_both_loader", left: 358 - 43 },
+                { ID: "22_pr", image_ld: "semitone_loader", left: 376 - 43 },
+                { ID: "23_pr",  image_ld: "tone_left_loader", left: 382 - 43 },
             ];
 
             var pianoKeyArgs = {
@@ -552,10 +641,13 @@
             this.ui.setValue('Tempo', 'knobvalue', 0.5);
             this.ui.setValue('Release', 'knobvalue', 100/127);
             this.ui.setValue('Cutoff', 'knobvalue', 50/127);
-            this.ui.setValue('Envelope', 'knobvalue', 80/127);
             this.ui.setValue('Resonance', 'knobvalue', 100/127);
             this.ui.setValue('Volume', 'knobvalue', 100/127);
             this.ui.setValue('Portamento', 'knobvalue', 64/127);
+
+            this.ui.setValue('switch', 'buttonvalue', 0);
+            this.ui.setValue('greenled_0', 'buttonvalue', 1);
+            this.ui.setValue('redled_0', 'buttonvalue', 1);
             
             this.ui.refresh();
 
@@ -632,8 +724,19 @@
             mulArgs.multipleImages.push ({ID: "black_knob_loader", imageNames : ["Knobs/Black_small.png"]});
             mulArgs.multipleImages.push ({ID: "white_knob_loader", imageNames : ["Knobs/White_big.png"]});
 
+            // Load switch
+            mulArgs.multipleImages.push ({ID: "switch_loader", imageNames : ["Switch/switch_0.png","Switch/switch_1.png","Switch/switch_2.png","Switch/switch_3.png"]});
+
+            // Plus and minus button
+            mulArgs.multipleImages.push ({ID: "plus_loader", imageNames : ["PlusMinusButtons/button_plus.png"]});
+            mulArgs.multipleImages.push ({ID: "minus_loader", imageNames : ["PlusMinusButtons/button_minus.png"]});
+
+            // Led buttons
+            mulArgs.multipleImages.push ({ID: "redled_loader", imageNames : ["Led/LedRed_off.png", "Led/LedRed_on.png"]});
+            mulArgs.multipleImages.push ({ID: "greenled_loader", imageNames : ["Led/LedGreen_off.png", "Led/LedGreen_on.png"]});
+
             // Load bg
-            mulArgs.multipleImages.push ({ID: "background_loader", imageNames : ["ND_deck_1.png"]});
+            mulArgs.multipleImages.push ({ID: "background_loader", imageNames : ["MS_deck.png"]});
 
             var mImageLoader = new loadMultipleImages (mulArgs);
         
