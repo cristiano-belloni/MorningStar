@@ -55,6 +55,7 @@
             },
             STEPS_NUM : 64,
             VELOCITY_DEFAULT : 64,
+            PATTERN_NUM: 4,
             keys : [],
             playKeys : [],
             highlights : [],
@@ -309,8 +310,13 @@
             console.log ("Calling plus callback");
 
             // Set current LED to off
-
+            console.log ("Setting off LED #", this.status.currentEditPattern);
+            this.ui.setValue("redled_" + this.status.currentEditPattern, 'buttonvalue', 0);
+            
             // Set current LED + 1 to on
+            console.log ("Setting on LED #", (this.status.currentEditPattern + 1) % this.status.numberOfPatterns, " of ", this.status.numberOfPatterns);
+            this.status.currentEditPattern = (this.status.currentEditPattern + 1) % this.status.numberOfPatterns;
+            this.ui.setValue("redled_" + this.status.currentEditPattern, 'buttonvalue', 1);
 
             this.ui.refresh();
         }
@@ -327,6 +333,9 @@
 
         MORNINGSTAR.switchCallback = function (slot, value, ID) {
             console.log ("Calling switch callback with value ", value);
+            
+            this.status.numberOfPatterns = value + 1;
+            
             this.ui.refresh();
         }
         
