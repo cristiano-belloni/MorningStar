@@ -288,8 +288,17 @@ var MORNINGSTAR = {
             console.log ("Calling minus callback");
 
             // Set current LED to off
+            console.log ("Setting off LED #", this.status.currentEditPattern);
+            this.ui.setValue("redled_" + this.status.currentEditPattern, 'buttonvalue', 0);
 
             // Set current LED - 1 to on
+            var ledToGo = this.status.currentEditPattern - 1;
+            if (ledToGo < 0) {
+                ledToGo = this.status.numberOfPatterns - 1;
+            }
+            console.log ("Setting on LED #", ledToGo, " of ", this.status.numberOfPatterns);
+            this.status.currentEditPattern = ledToGo;
+            this.ui.setValue("redled_" + this.status.currentEditPattern, 'buttonvalue', 1);
 
             this.ui.refresh();
         }
