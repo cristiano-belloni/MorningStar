@@ -308,6 +308,12 @@ var MORNINGSTAR = {
 
             this.status.numberOfPatterns = value + 1;
 
+            if (this.status.currentEditPattern >= this.status.numberOfPatterns) {
+                this.ui.setValue("redled_" + this.status.currentEditPattern, 'buttonvalue', 0);
+                this.status.currentEditPattern = this.status.numberOfPatterns - 1;
+                this.ui.setValue("redled_" + this.status.currentEditPattern, 'buttonvalue', 1);
+            }
+
             this.ui.refresh();
         }
 
