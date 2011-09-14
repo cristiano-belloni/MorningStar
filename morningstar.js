@@ -21,7 +21,8 @@ var MORNINGSTAR = {
             greenLeds : [],
             redLeds : [],
             currentStep : 0,
-            audioOK : false
+            currentHLStep : 0,
+            audioOk : false
         };
 
         MORNINGSTAR.logError = function (status) {
@@ -68,7 +69,7 @@ var MORNINGSTAR = {
             // Play note
             // TODO this will become "active"
             if (this.keys[nextStep].getValue("buttonvalue") === 1) {
-                if (this.status.audioOk === true) {
+                if (this.audioOk === true) {
                     // If the next step is active, turn the playing note off.
                     this.ADNonDescript.noteOff();
                     // If there really is a note (not a pause), play it.
@@ -188,7 +189,7 @@ var MORNINGSTAR = {
             // This is gonna be deleted and real velocity used TODO
             var velocity = this.VELOCITY_DEFAULT;
 
-            if (this.status.audioOk === true) {
+            if (this.audioOk === true) {
                 // Piano keys are exclusive, so turn off the current note playing
                 this.ADNonDescript.noteOff();
             }
@@ -200,7 +201,7 @@ var MORNINGSTAR = {
                 // Set the others to off.
                 this.pianoSetUnique.call(this,elName);
 
-                if (this.status.audioOk === true) {
+                if (this.audioOk === true) {
                     // Play the note in the synth
                     this.ADNonDescript.noteOn(noteNumber - 33, velocity);
                 }
@@ -221,17 +222,13 @@ var MORNINGSTAR = {
             this.ui.refresh();
         }
 
-        MORNINGSTAR.hlCallback = function (slot, value, ID) {
-            // Change the highlighted slot
-            var newStep = parseInt(ID.split('_')[0], 10);
+        MORNINGSTAR.pianoKeyChange = function (newStep) {
 
             if (this.currentStep !== newStep) {
-
-                 if (this.status.audioOk === true) {
-                    // currentStep will change. Send a noteOff to truncate playing.
-                    this.ADNonDescript.noteOff();
-                 }
-
+                if (this.audioOk === true) {
+                        // currentStep will change. Send a noteOff to truncate playing.
+                        this.ADNonDescript.noteOff();
+                     }
                 // Display the correct note if there is one (aka not -1)
                 if (this.status.steps[newStep].note !== -1) {
                     this.pianoSetUnique.call(this, this.status.steps[newStep].note + '_pr');
@@ -240,23 +237,40 @@ var MORNINGSTAR = {
                 else {
                     this.pianoUnsetAll.call(this, null);
                 }
+            }
+        }
+
+        MORNINGSTAR.hlChange = function (newStep) {
+        if (this.currentHLStep !== newStep) {
 
                 // Set current highlight as invisible
-                this.ui.setVisible(this.currentStep + '_hl', false);
+                this.ui.setVisible(this.currentHLStep + '_hl', false);
                 // setVisible = false makes it unclickable. Make it clickable again.
-                this.ui.setClickable(this.currentStep + '_hl', true);
-                // Set new highlight as visible, and update currentStep
+                this.ui.setClickable(this.currentHLStep + '_hl', true);
+                // Set new highlight as visible, and update currentHLStep
                 this.ui.setVisible(newStep + '_hl', true);
-                this.currentStep = newStep;
-
+                this.currentHLStep = newStep;               
             }
+        }
+
+        MORNINGSTAR.hlCallback = function (slot, value, ID) {
+
+            var newStep = parseInt(ID.split('_')[0], 10);
+            var newRealStep = newStep + this.STEPS_PER_PATTERN * this.status.currentEditPattern;
+            // Change the highlighted slot
+            this.hlChange (newStep, newRealStep);
+            // Trigger a new note in the piano, if needed
+            this.pianoKeyChange (newRealStep);
+            // Set the new current step
+            this.currentStep = newRealStep;
+            
             this.ui.refresh();
         }
 
         MORNINGSTAR.keyCallback = function (slot, value, ID) {
 
             var newRealStep = parseInt(ID,10) + this.STEPS_PER_PATTERN * this.status.currentEditPattern;
-
+            
             if (value === 0) {
                 this.status.steps[newRealStep].active = 0;
                 console.log ("Unset step number " + newRealStep);
@@ -268,8 +282,17 @@ var MORNINGSTAR = {
             else {
                 //throw!
             }
-            // Call the highlight callback, as if it was triggered.
-            this.hlCallback(slot, value, ID + '_hl');
+
+            // Change the highlight
+            this.hlChange (parseInt(ID,10), newRealStep);
+            // Trigger a new note in the piano, if needed
+            this.pianoKeyChange (newRealStep);
+
+            // Set the new current step
+            this.currentStep = newRealStep;
+
+            this.ui.refresh();
+
         };
 
         MORNINGSTAR.plusCallback = function (slot, value, ID) {
@@ -327,6 +350,15 @@ var MORNINGSTAR = {
             this.status.currentEditPattern = newpattern;
 
             this.switchSteps();
+
+            // Current step is changed to where the highlight was
+            var newStep = this.STEPS_PER_PATTERN * this.status.currentEditPattern + this.currentHLStep;
+            console.log("Switching currentStep to", this.currentStep);
+            // Trigger a new note in the piano, if needed
+            this.pianoKeyChange (newStep);
+
+            this.currentStep = newStep;
+
             return;
         }
 
@@ -339,13 +371,14 @@ var MORNINGSTAR = {
                 this.ui.setValue("redled_" + this.status.currentEditPattern, 'buttonvalue', 0);
                 this.status.currentEditPattern = this.status.numberOfPatterns - 1;
                 this.ui.setValue("redled_" + this.status.currentEditPattern, 'buttonvalue', 1);
+                this.switchPattern(this.status.currentEditPattern);
             }
 
             this.ui.refresh();
         }
 
         MORNINGSTAR.instrKnobCallback = function (slot, value, ID) {
-             if (this.status.audioOk === true) {
+             if (this.audioOk === true) {
                 // Interpolate the instrKnobs value in the integer range [0,127]
                 var interpolated_value = Math.round(value * 127);
                 var functionName = "set" + ID;
@@ -646,7 +679,7 @@ var MORNINGSTAR = {
                 this.ui.addElement(this.pianoRollKeys[i], {zIndex: pianoZIndex});
             }
 
-            this.status.audioOK = true;
+            this.audioOk = true;
             try {
                 this.ADNonDescript = new AudioDataNonDescript();
                 this.ADNonDescript.init({sampleRate: 44100});
@@ -654,7 +687,7 @@ var MORNINGSTAR = {
             }
             catch (err) {
                 console.log ("Catched an exception: ", err, " Audio could be not loaded: ", err.description);
-                this.status.audioOK = false;
+                this.audioOk = false;
             }
             
 
