@@ -10,6 +10,7 @@ var MORNINGSTAR = {
             STEPS_NUM : 64,
             VELOCITY_DEFAULT : 64,
             PATTERN_NUM: 4,
+            STEPS_PER_PATTERN: 16,
             keys : [],
             playKeys : [],
             highlights : [],
@@ -254,13 +255,15 @@ var MORNINGSTAR = {
 
         MORNINGSTAR.keyCallback = function (slot, value, ID) {
 
+            var newRealStep = parseInt(ID,10) + this.STEPS_PER_PATTERN * this.status.currentEditPattern;
+
             if (value === 0) {
-                this.status.steps[parseInt(ID,10)].active = false;
-                console.log ("Unset step number " + ID);
+                this.status.steps[newRealStep].active = 0;
+                console.log ("Unset step number " + newRealStep);
             }
             else if (value === 1) {
-                this.status.steps[parseInt(ID,10)].active = true;
-                console.log ("Set step number " + ID);
+                this.status.steps[newRealStep].active = 1;
+                console.log ("Set step number " + newRealStep);
             }
             else {
                 //throw!
@@ -276,10 +279,12 @@ var MORNINGSTAR = {
             console.log ("Setting off LED #", this.status.currentEditPattern);
             this.ui.setValue("redled_" + this.status.currentEditPattern, 'buttonvalue', 0);
 
+            var ledToGo = (this.status.currentEditPattern + 1) % this.status.numberOfPatterns;
             // Set current LED + 1 to on
-            console.log ("Setting on LED #", (this.status.currentEditPattern + 1) % this.status.numberOfPatterns, " of ", this.status.numberOfPatterns);
-            this.status.currentEditPattern = (this.status.currentEditPattern + 1) % this.status.numberOfPatterns;
-            this.ui.setValue("redled_" + this.status.currentEditPattern, 'buttonvalue', 1);
+            console.log ("Setting on LED #", ledToGo, " of ", this.status.numberOfPatterns);
+            this.ui.setValue("redled_" + ledToGo, 'buttonvalue', 1);
+            
+            this.switchPattern(ledToGo);
 
             this.ui.refresh();
         }
@@ -297,10 +302,32 @@ var MORNINGSTAR = {
                 ledToGo = this.status.numberOfPatterns - 1;
             }
             console.log ("Setting on LED #", ledToGo, " of ", this.status.numberOfPatterns);
-            this.status.currentEditPattern = ledToGo;
-            this.ui.setValue("redled_" + this.status.currentEditPattern, 'buttonvalue', 1);
+            this.ui.setValue("redled_" + ledToGo, 'buttonvalue', 1);
+
+            this.switchPattern(ledToGo);
 
             this.ui.refresh();
+        }
+
+        MORNINGSTAR.switchSteps = function () {
+            // Change the highlighted slot
+            for (var i = 0; i < this.STEPS_PER_PATTERN; i+=1) {
+                var stepNum = this.STEPS_PER_PATTERN * this.status.currentEditPattern + i;
+                this.ui.setValue (i.toString(), 'buttonvalue', this.status.steps[stepNum].active, undefined, false);
+            }
+            return;
+        }
+
+        MORNINGSTAR.switchPattern = function (newpattern) {
+            if (this.status.currentEditPattern === newpattern) {
+                console.log ("Pattern is the same, not switching");
+                return;
+            }
+            console.log("Switching pattern to", newpattern);
+            this.status.currentEditPattern = newpattern;
+
+            this.switchSteps();
+            return;
         }
 
         MORNINGSTAR.switchCallback = function (slot, value, ID) {
@@ -571,30 +598,30 @@ var MORNINGSTAR = {
             // PIANO ROLL
 
             var  pianoKeyData = [
-                { ID: "0_pr",   image_ld: "tone_right_loader", left: 73 - 43 },
-                { ID: "1_pr",  image_ld: "semitone_loader", left: 91 - 43 },
-                { ID: "2_pr",   image_ld: "tone_both_loader", left: 97  - 43},
-                { ID: "3_pr",  image_ld: "semitone_loader",  left: 115 - 43 },
-                { ID: "4_pr",   image_ld: "tone_left_loader", left: 121 - 43 },
-                { ID: "5_pr",   image_ld: "tone_right_loader", left: 144 - 43 },
-                { ID: "6_pr",  image_ld: "semitone_loader", left: 162 - 43 },
-                { ID: "7_pr",   image_ld: "tone_both_loader", left: 168 - 43 },
-                { ID: "8_pr",  image_ld: "semitone_loader", left: 186 - 43 },
-                { ID: "9_pr",   image_ld: "tone_both_loader", left: 192 - 43 },
-                { ID: "10_pr", image_ld: "semitone_loader", left: 210 - 43 },
-                { ID: "11_pr",  image_ld: "tone_left_loader", left: 216 - 43 },
-                { ID: "12_pr",  image_ld: "tone_right_loader", left: 239 - 43 },
-                { ID: "13_pr", image_ld: "semitone_loader", left: 257 - 43},
-                { ID: "14_pr",  image_ld: "tone_both_loader", left: 263 - 43 },
-                { ID: "15_pr", image_ld: "semitone_loader", left: 280 - 43 },
-                { ID: "16_pr",  image_ld: "tone_left_loader", left: 286 - 43 },
-                { ID: "17_pr",  image_ld: "tone_right_loader", left: 310 - 43 },
-                { ID: "18_pr", image_ld: "semitone_loader", left: 328 - 43 },
-                { ID: "19_pr",  image_ld: "tone_both_loader", left: 334 - 43 },
-                { ID: "20_pr", image_ld: "semitone_loader", left: 352 - 43 },
-                { ID: "21_pr",  image_ld: "tone_both_loader", left: 358 - 43 },
-                { ID: "22_pr", image_ld: "semitone_loader", left: 376 - 43 },
-                { ID: "23_pr",  image_ld: "tone_left_loader", left: 382 - 43 },
+                {ID: "0_pr",   image_ld: "tone_right_loader", left: 73 - 43},
+                {ID: "1_pr",  image_ld: "semitone_loader", left: 91 - 43},
+                {ID: "2_pr",   image_ld: "tone_both_loader", left: 97  - 43},
+                {ID: "3_pr",  image_ld: "semitone_loader",  left: 115 - 43},
+                {ID: "4_pr",   image_ld: "tone_left_loader", left: 121 - 43},
+                {ID: "5_pr",   image_ld: "tone_right_loader", left: 144 - 43},
+                {ID: "6_pr",  image_ld: "semitone_loader", left: 162 - 43},
+                {ID: "7_pr",   image_ld: "tone_both_loader", left: 168 - 43},
+                {ID: "8_pr",  image_ld: "semitone_loader", left: 186 - 43},
+                {ID: "9_pr",   image_ld: "tone_both_loader", left: 192 - 43},
+                {ID: "10_pr", image_ld: "semitone_loader", left: 210 - 43},
+                {ID: "11_pr",  image_ld: "tone_left_loader", left: 216 - 43},
+                {ID: "12_pr",  image_ld: "tone_right_loader", left: 239 - 43},
+                {ID: "13_pr", image_ld: "semitone_loader", left: 257 - 43},
+                {ID: "14_pr",  image_ld: "tone_both_loader", left: 263 - 43},
+                {ID: "15_pr", image_ld: "semitone_loader", left: 280 - 43},
+                {ID: "16_pr",  image_ld: "tone_left_loader", left: 286 - 43},
+                {ID: "17_pr",  image_ld: "tone_right_loader", left: 310 - 43},
+                {ID: "18_pr", image_ld: "semitone_loader", left: 328 - 43},
+                {ID: "19_pr",  image_ld: "tone_both_loader", left: 334 - 43},
+                {ID: "20_pr", image_ld: "semitone_loader", left: 352 - 43},
+                {ID: "21_pr",  image_ld: "tone_both_loader", left: 358 - 43},
+                {ID: "22_pr", image_ld: "semitone_loader", left: 376 - 43},
+                {ID: "23_pr",  image_ld: "tone_left_loader", left: 382 - 43},
             ];
 
             var pianoKeyArgs = {
@@ -660,7 +687,7 @@ var MORNINGSTAR = {
             this.ui = new UI (plugin_canvas, CWrapper, {breakOnFirstEvent: true});
 
             var imageResources = [];
-            var mulArgs = { multipleImages: [],
+            var mulArgs = {multipleImages: [],
                             onComplete: this.afterLoading.bind(MORNINGSTAR),
                             onError: this.logError.bind(MORNINGSTAR)
             }
