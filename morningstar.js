@@ -22,7 +22,8 @@ var MORNINGSTAR = {
             redLeds : [],
             currentStep : 0,
             currentHLStep : 0,
-            audioOk : false
+            audioOk : false,
+            currentPlayPattern: 0
         };
 
         MORNINGSTAR.logError = function (status) {
@@ -53,22 +54,48 @@ var MORNINGSTAR = {
 
             if ((state === true) && (this.sequenceStep !== -1)) {
                 // Set the last play key as invisible
-                this.ui.setVisible(this.playKeys[this.sequenceStep].ID, false);
+                this.ui.setVisible(this.playKeys[this.sequenceStep % this.STEPS_PER_PATTERN].ID, false);
                 // Set the last real key as visible
-                this.ui.setVisible(this.keys[this.sequenceStep].ID, true);
+                this.ui.setVisible(this.keys[this.sequenceStep % this.STEPS_PER_PATTERN].ID, true);
+                // Play and stop reset the position; don't do this if you wanna simply pause the sequencer
+                // Reset the current sequence step
+                this.sequenceStep = -1;
             }
         }
 
 
         MORNINGSTAR.sequencerRoutine = function () {
 
-            var step = this.sequenceStep;
-            // TODO this will be "length" no more.
-            var nextStep = (step + 1) % this.keys.length;
+            var changePattern = false;
+            var nextStep = (this.sequenceStep + 1) % (this.STEPS_PER_PATTERN * this.status.numberOfPatterns);
+            // Graphical step, the actual key to light.
+            var nextGrStep = nextStep % this.STEPS_PER_PATTERN;
+
+            if ((nextGrStep === 0) /*&& (nextGrStep !== nextStep)*/) {
+                //Time to change pattern
+                changePattern = true;
+                //Last play key becomes invisible
+                this.ui.setVisible(this.playKeys[this.STEPS_PER_PATTERN - 1].ID, false);
+                //Last I/O key becomes visible
+                this.ui.setVisible(this.keys[this.STEPS_PER_PATTERN - 1].ID, true);
+                //and unclickable, again
+                this.ui.setClickable(this.keys[this.STEPS_PER_PATTERN - 1].ID, false);
+                //Actually change pattern
+                this.switchPattern (nextStep / this.STEPS_PER_PATTERN);
+                //See if we need to refresh the play LED
+                if ((nextStep / this.STEPS_PER_PATTERN) !== this.currentPlayPattern) {
+                    //Light the right green led
+                    this.ui.setValue("greenled_" + (nextStep / this.STEPS_PER_PATTERN), 'buttonvalue', 1);
+                    // Turn the previous green led off
+                    this.ui.setValue("greenled_" + this.currentPlayPattern, 'buttonvalue', 0);
+                }
+                // Update the current play pattern
+                this.currentPlayPattern = nextStep / this.STEPS_PER_PATTERN;
+
+            }
 
             // Play note
-            // TODO this will become "active"
-            if (this.keys[nextStep].getValue("buttonvalue") === 1) {
+            if (this.status.steps[nextStep].active === 1) {
                 if (this.audioOk === true) {
                     // If the next step is active, turn the playing note off.
                     this.ADNonDescript.noteOff();
@@ -80,20 +107,21 @@ var MORNINGSTAR = {
 
             }
 
-            if (this.sequenceStep !== -1) {
+            // If we're not at the first step
+            if (nextGrStep !== 0) {
                 //Restore previous key
                 //play key becomes invisible
-                this.ui.setVisible(this.playKeys[step].ID, false);
+                this.ui.setVisible(this.playKeys[nextGrStep - 1].ID, false);
                 //i/o key becomes visible
-                this.ui.setVisible(this.keys[step].ID, true);
+                this.ui.setVisible(this.keys[nextGrStep - 1].ID, true);
                 //and unclickable, again
-                this.ui.setClickable(this.keys[step].ID, false);
+                this.ui.setClickable(this.keys[nextGrStep - 1].ID, false);
             }
 
             //i/o key is invisible
-            this.ui.setVisible(this.keys[nextStep].ID, false);
+            this.ui.setVisible(this.keys[nextGrStep].ID, false);
             //play key becomes visible
-            this.ui.setVisible(this.playKeys[nextStep].ID, true);
+            this.ui.setVisible(this.playKeys[nextGrStep].ID, true);
             //increment position
             this.sequenceStep = nextStep;
             // This could be conditional, if refresh() takes too much time.
@@ -309,6 +337,8 @@ var MORNINGSTAR = {
             
             this.switchPattern(ledToGo);
 
+            this.ui.setValue("statusLabel", 'labelvalue', "Edit pattern: " + (parseInt(ledToGo,10)+ 1));
+
             this.ui.refresh();
         }
 
@@ -328,6 +358,8 @@ var MORNINGSTAR = {
             this.ui.setValue("redled_" + ledToGo, 'buttonvalue', 1);
 
             this.switchPattern(ledToGo);
+
+            this.ui.setValue("statusLabel", 'labelvalue', "Edit pattern: " + (parseInt(ledToGo,10)+ 1));
 
             this.ui.refresh();
         }
@@ -374,6 +406,8 @@ var MORNINGSTAR = {
                 this.switchPattern(this.status.currentEditPattern);
             }
 
+            this.ui.setValue("statusLabel", 'labelvalue', "N. of patterns: " + this.status.numberOfPatterns);
+
             this.ui.refresh();
         }
 
@@ -385,6 +419,7 @@ var MORNINGSTAR = {
                 console.log ("Calling ADNonDescript[" + functionName + "] with value " + value + "-->" + interpolated_value);
                 this.ADNonDescript[functionName](interpolated_value);
             }
+            this.ui.setValue("statusLabel", 'labelvalue', ID + ": " + interpolated_value);
             this.ui.refresh();
         };
 
@@ -395,6 +430,7 @@ var MORNINGSTAR = {
                 // a = 0, b = 1, z = 180, y = 60
                 this.tempo_value = Math.round(value *  120 + 60);
                 console.log ("TEMPO set to ", this.tempo_value);
+                this.ui.setValue("statusLabel", 'labelvalue', "BPM: " + this.tempo_value);
             }
             this.ui.refresh();
         };
@@ -403,6 +439,25 @@ var MORNINGSTAR = {
 
             var key_initial_offset = 67 - 43,
                 key_distance = 55;
+
+            /* LABEL INIT */
+
+            // Every element calls label's setValue in the callback, so let's make sure
+            // that label is declared first.
+            this.label = new Label({
+                ID: 'statusLabel',
+                width : 320,
+                height : 29,
+                top : 69,
+                left : 42,
+                objParms: {
+                    font: "28px embedded_font",
+                    textColor: "#000",
+                    textBaseline: "top",
+                    textAlignment: "left"
+                }
+            });
+            this.ui.addElement(this.label, {zIndex: 3});
 
             /* BACKGROUND */
 
