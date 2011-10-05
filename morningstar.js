@@ -98,10 +98,10 @@ var MORNINGSTAR = {
             if (this.status.steps[nextStep].active === 1) {
                 if (this.audioOk === true) {
                     // If the next step is active, turn the playing note off.
-                    this.ADNonDescript.noteOff();
+                    this.audioManager.noteOff();
                     // If there really is a note (not a pause), play it.
                     if (this.status.steps[nextStep].note !== -1) {
-                        this.ADNonDescript.noteOn(this.status.steps[nextStep].note - 33, 64);
+                        this.audioManager.noteOn(this.status.steps[nextStep].note - 33, 64);
                     }
                 }
 
@@ -219,7 +219,7 @@ var MORNINGSTAR = {
 
             if (this.audioOk === true) {
                 // Piano keys are exclusive, so turn off the current note playing
-                this.ADNonDescript.noteOff();
+                this.audioManager.noteOff();
             }
 
             if (value === 1) {
@@ -231,7 +231,7 @@ var MORNINGSTAR = {
 
                 if (this.audioOk === true) {
                     // Play the note in the synth
-                    this.ADNonDescript.noteOn(noteNumber - 33, velocity);
+                    this.audioManager.noteOn(noteNumber - 33, velocity);
                 }
 
                 console.log ("Note ", elName, " number ", noteNumber, " for key ", this.currentStep, " is ON!");
@@ -255,7 +255,7 @@ var MORNINGSTAR = {
             if (this.currentStep !== newStep) {
                 if (this.audioOk === true) {
                         // currentStep will change. Send a noteOff to truncate playing.
-                        this.ADNonDescript.noteOff();
+                        this.audioManager.noteOff();
                      }
                 // Display the correct note if there is one (aka not -1)
                 if (this.status.steps[newStep].note !== -1) {
@@ -416,8 +416,8 @@ var MORNINGSTAR = {
                 // Interpolate the instrKnobs value in the integer range [0,127]
                 var interpolated_value = Math.round(value * 127);
                 var functionName = "set" + ID;
-                console.log ("Calling ADNonDescript[" + functionName + "] with value " + value + "-->" + interpolated_value);
-                this.ADNonDescript[functionName](interpolated_value);
+                console.log ("Calling audioManager[" + functionName + "] with value " + value + "-->" + interpolated_value);
+                this.audioManager[functionName](interpolated_value);
             }
             this.ui.setValue("statusLabel", 'labelvalue', ID + ": " + interpolated_value);
             this.ui.refresh();
@@ -735,14 +735,33 @@ var MORNINGSTAR = {
             }
 
             this.audioOk = true;
-            try {
-                this.ADNonDescript = new AudioDataNonDescript();
-                this.ADNonDescript.init({sampleRate: 44100});
-                this.ADNonDescript.setBypass (false);
+
+            var is_chrome = navigator.userAgent.toLowerCase().indexOf('chrome') > -1;
+            
+            if (is_chrome) {
+                try {
+                    this.WAAMS = new WAAMorningStar();
+                    this.WAAMS.init();
+                    this.WAAMS.setBypass (false);
+                    this.audioManager = this.WAAMS;
+                }
+                catch (err) {
+                    console.log ("Catched an exception trying to load Web Audio API: ", err, " Audio could be not loaded: ", err.description);
+                    this.audioOk = false;
+                }
             }
-            catch (err) {
-                console.log ("Catched an exception: ", err, " Audio could be not loaded: ", err.description);
-                this.audioOk = false;
+
+            else {
+                try {
+                    this.ADNonDescript = new AudioDataNonDescript();
+                    this.ADNonDescript.init({sampleRate: 44100});
+                    this.ADNonDescript.setBypass (false);
+                    this.audioManager = this.ADNonDescript;
+                }
+                catch (err) {
+                    console.log ("Catched an exception trying to load Mozilla Audio API: ", err, " Audio could be not loaded: ", err.description);
+                    this.audioOk = false;
+                }
             }
             
 
