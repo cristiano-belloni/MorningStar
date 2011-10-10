@@ -17,7 +17,11 @@ WAAMorningStar.prototype.init = function (audioParameters) {
 
     this.source = this.context.createJavaScriptNode(2048, 0, 1);
     this.source.onaudioprocess = this.process;
-    this.source.connect(this.context.destination);
+
+    this.delayStage = this.context.createDelayNode();
+
+    this.source.connect(this.delayStage);
+    this.delayStage.connect(this.context.destination);
 };
 
 WAAMorningStar.prototype.noteOn = function (noteNum, velocity) {
@@ -69,6 +73,10 @@ WAAMorningStar.prototype.setVolume = function (volValue) {
 
 WAAMorningStar.prototype.setBypass = function (bypassON) {
     ND.bypass = bypassON;
+}
+
+WAAMorningStar.prototype.setReverb = function (revValue) {
+    this.delayStage.delayTime.value = revValue;
 }
 
 

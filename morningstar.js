@@ -432,6 +432,10 @@ var MORNINGSTAR = {
                 console.log ("TEMPO set to ", this.tempo_value);
                 this.ui.setValue("statusLabel", 'labelvalue', "BPM: " + this.tempo_value);
             }
+            if (ID === "Reverb") {
+                this.audioManager.setReverb(value);
+                this.ui.setValue("statusLabel", 'labelvalue', "Reverb: " + value);
+            }
             this.ui.refresh();
         };
 
@@ -569,7 +573,7 @@ var MORNINGSTAR = {
             var  instr_knob_names = [{ID: "Resonance", top: 255, left: 820 - 43},
                                      {ID: "Release", top: 61, left: 820 - 43},
                                      {ID: "Cutoff",  top: 255, left: 641 - 43},
-                                     {ID: "Portamento", top: 61, left: 641 - 43}];
+                                     {ID: "Envelope", top: 61, left: 641 - 43}];
 
             var instrKnobArgs = {
                 image : loaders["white_knob_loader"].images[0],
@@ -773,7 +777,7 @@ var MORNINGSTAR = {
             this.ui.setValue('Cutoff', 'knobvalue', 50/127);
             this.ui.setValue('Resonance', 'knobvalue', 100/127);
             this.ui.setValue('Volume', 'knobvalue', 100/127);
-            this.ui.setValue('Portamento', 'knobvalue', 64/127);
+            this.ui.setValue('Envelope', 'knobvalue', 64/127);
 
             this.ui.setValue('switch', 'buttonvalue', 0);
             this.ui.setValue('greenled_0', 'buttonvalue', 1);
