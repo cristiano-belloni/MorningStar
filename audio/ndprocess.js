@@ -80,7 +80,8 @@ var /*int*/ i;
                 }
             }
 
-            data[i] = this.sample * (this.volume / 127);
+            // Velocity control does nothing, had to use it as a gain here.
+            data[i] = this.sample * (this.volume / 127) * (this.vel /127) ;
         }
     }
 }

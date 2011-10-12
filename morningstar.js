@@ -8,7 +8,7 @@ var MORNINGSTAR = {
                 currentEditPattern : 0
             },
             STEPS_NUM : 64,
-            VELOCITY_DEFAULT : 1,
+            VELOCITY_DEFAULT : 0.5,
             PATTERN_NUM: 4,
             STEPS_PER_PATTERN: 16,
             keys : [],
@@ -101,7 +101,7 @@ var MORNINGSTAR = {
                     this.audioManager.noteOff();
                     // If there really is a note (not a pause), play it.
                     if (this.status.steps[nextStep].note !== -1) {
-                        this.audioManager.noteOn(this.status.steps[nextStep].note - 33, 64);
+                        this.audioManager.noteOn(this.status.steps[nextStep].note - 33, Math.round(this.status.steps[nextStep].velocity * 127));
                     }
                 }
 
@@ -214,9 +214,6 @@ var MORNINGSTAR = {
 
             var noteNumber = parseInt(elName.split('_')[0], 10);
 
-            // This is gonna be deleted and real velocity used TODO
-            var velocity = this.VELOCITY_DEFAULT;
-
             if (this.audioOk === true) {
                 // Piano keys are exclusive, so turn off the current note playing
                 this.audioManager.noteOff();
@@ -225,6 +222,7 @@ var MORNINGSTAR = {
             if (value === 1) {
                 // Set a new key in the status
                 this.status.steps[this.currentStep].note = noteNumber;
+                var velocity = Math.round(this.status.steps[this.currentStep].velocity * 127);
 
                 // Set the others to off.
                 this.pianoSetUnique.call(this,elName);
@@ -453,6 +451,7 @@ var MORNINGSTAR = {
             if (ID == "Velocity") {
                 // Save the velocity for the highlighted step
                 this.status.steps[this.currentStep].velocity = value;
+                this.ui.setValue("statusLabel", 'labelvalue', "Vel: " + Math.round(value * 127));
             }
             this.ui.refresh();
         };
@@ -800,6 +799,14 @@ var MORNINGSTAR = {
             this.ui.setValue('switch', 'buttonvalue', 0);
             this.ui.setValue('greenled_0', 'buttonvalue', 1);
             this.ui.setValue('redled_0', 'buttonvalue', 1);
+            this.ui.setValue('Velocity', 'knobvalue', this.VELOCITY_DEFAULT);
+
+            if (this.audioOk === true) {
+                this.ui.setValue("statusLabel", 'labelvalue', "Morning star synth");
+            }
+            else {
+                this.ui.setValue("statusLabel", 'labelvalue', "Audio not OK");
+            }
 
             this.ui.refresh();
 
