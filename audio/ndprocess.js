@@ -73,8 +73,8 @@ var /*int*/ i;
             this.lastsample = this.sample;
             
             if (this.IMPLEMENT_DISTORTION === true) {
-                // -1 value yelds no distortion.
-                if (this.dist !== -1) {
+                // 0-value gives no distortion, bypass expilicitly.
+                if (this.dist !== 0) {
                     var k = 2 * this.dist / (1 - this.dist);
                     this.sample += (1 + k) * this.sample / (1+ k * Math.abs(this.sample));
                 }

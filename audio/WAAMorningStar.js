@@ -3,13 +3,9 @@ function WAAMorningStar() {
 
 WAAMorningStar.prototype.createWSCurve = function (amount, n_samples) {
     
-    if ((amount >= -1) && (amount < 1)) {
+    if ((amount >= 0) && (amount < 1)) {
         
-        this.wsCurve = new Float32Array(n_samples);
         ND.dist = amount;
-
-        // x = input in [-1..1]
-        // y = output
 
         var k = 2 * ND.dist / (1 - ND.dist);
 
@@ -19,8 +15,7 @@ WAAMorningStar.prototype.createWSCurve = function (amount, n_samples) {
             var x = (i - 0) * (1 - (-1)) / (n_samples - 0) + (-1);
             this.wsCurve[i] = (1 + k) * x / (1+ k * Math.abs(x));
         }
-
-        
+   
     }
 }
 
@@ -33,29 +28,34 @@ WAAMorningStar.prototype.process = function(event) {
 WAAMorningStar.prototype.init = function (audioParameters) {
     
     this.nSamples = 2048;
+    this.wsCurve = new Float32Array(this.nSamples);
     
     this.context = new webkitAudioContext();
 
     /* todo we want a new() here */
     this.NonDescriptDSP = ND;
+    // Distortion is done by a waveshaper node, no need to do it in the process() call
+    ND.IMPLEMENT_DISTORTION = false;
+    // Start with no distortion. TODO don't like it here.
+    this.setDistortion(0);
+    
     this.NonDescriptDSP.init(this.context.sampleRate);
-
+    
+    // Create the sigmoid curve for  the waveshaper.
+    this.createWSCurve(ND.dist, this.nSamples);
+    this.sigmaDistortNode = this.context.createWaveShaper();
+    this.sigmaDistortNode.curve = this.wsCurve;
+    
     this.source = this.context.createJavaScriptNode(this.nSamples, 0, 1);
     this.source.onaudioprocess = this.process;
-    this.source.connect(this.context.destination);
+    //this.source.connect(this.context.destination);
 
     //this.delayStage = this.context.createDelayNode();
     //this.source.connect(this.delayStage);
     //this.delayStage.connect(this.context.destination);
-
-    // Start with bypass
-    this.setDistortion(-1);
-    /* This won't work right now */
-    //this.createWSCurve(ND.dist, this.nSamples);
-    //this.sigmaDistortNode = this.context.createWaveShaperNode();
-    //this.sigmaDistortNode.curve = this.wsCurve;
-    //this.source.connect(this.sigmaDistortNode);
-    //this.sigmaDistortNode.connect(this.context.destination);
+   
+    this.source.connect(this.sigmaDistortNode);
+    this.sigmaDistortNode.connect(this.context.destination);
     
 };
 
@@ -122,7 +122,8 @@ WAAMorningStar.prototype.setDistortion = function (distValue) {
     if (distValue >= 1) {
         distCorrect = 0.985;
     }
-    ND.dist = distCorrect;
+    //ND.dist = distCorrect;
+    this.createWSCurve (distCorrect, this.nSamples);
     console.log ("ND.dist is ", ND.dist);
 }
 

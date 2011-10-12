@@ -437,19 +437,15 @@ var MORNINGSTAR = {
                 this.ui.setValue("statusLabel", 'labelvalue', "Reverb: " + value);
             }
             if (ID === "Distortion") {
-                // Interpolate the Tempo value in the range [-1,1]
-                // LINEAR INTERPOLATION: x := (c - a) * (z - y) / (b - a) + y
-                // a = 0, b = 1, z = 1, y = -1, c = value
-                var dist_value = (value - 0) * (1 - (-1)) / (1 - 0) + (-1);
-                this.audioManager.setDistortion(dist_value);
-                if (dist_value === -1) {
+                this.audioManager.setDistortion(value);
+                if (value === 0) {
                     this.ui.setValue("statusLabel", 'labelvalue', "Dist: Off");
                 }
-                else if (dist_value === 1) {
+                else if (value === 1) {
                     this.ui.setValue("statusLabel", 'labelvalue', "Dist: Max");
                 }
                 else {
-                    this.ui.setValue("statusLabel", 'labelvalue', "Dist: " + dist_value.toFixed(3));
+                    this.ui.setValue("statusLabel", 'labelvalue', "Dist: " + value.toFixed(3));
                 }
             }
             this.ui.refresh();
