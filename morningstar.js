@@ -8,7 +8,7 @@ var MORNINGSTAR = {
                 currentEditPattern : 0
             },
             STEPS_NUM : 64,
-            VELOCITY_DEFAULT : 64,
+            VELOCITY_DEFAULT : 1,
             PATTERN_NUM: 4,
             STEPS_PER_PATTERN: 16,
             keys : [],
@@ -265,6 +265,8 @@ var MORNINGSTAR = {
                 else {
                     this.pianoUnsetAll.call(this, null);
                 }
+                // Display the correct velocity, do not trigger the callback
+                this.ui.setValue('Velocity', 'knobvalue', this.status.steps[newStep].velocity, undefined, false);
             }
         }
 
@@ -447,6 +449,10 @@ var MORNINGSTAR = {
                 else {
                     this.ui.setValue("statusLabel", 'labelvalue', "Dist: " + value.toFixed(3));
                 }
+            }
+            if (ID == "Velocity") {
+                // Save the velocity for the highlighted step
+                this.status.steps[this.currentStep].velocity = value;
             }
             this.ui.refresh();
         };
