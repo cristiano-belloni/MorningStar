@@ -17,7 +17,9 @@ var ND = {
     /* unsigned int */ envmod : 80,
     /* unsigned int */ resonance : 100,
     /* unsigned int */ volume : 100,
-    /* unsigned int */ portamento : 64
+    /* unsigned int */ portamento : 64,
+    IMPLEMENT_DISTORTION : true,
+    dist : 0
 };
 
 ND.tanh = function (arg) {
@@ -69,6 +71,14 @@ var /*int*/ i;
 
             this.sample = this.sample * 0.5 + this.lastsample * 0.5;
             this.lastsample = this.sample;
+            
+            if (this.IMPLEMENT_DISTORTION === true) {
+                // -1 value yelds no distortion.
+                if (this.dist !== -1) {
+                    var k = 2 * this.dist / (1 - this.dist);
+                    this.sample += (1 + k) * this.sample / (1+ k * Math.abs(this.sample));
+                }
+            }
 
             data[i] = this.sample * (this.volume / 127);
         }

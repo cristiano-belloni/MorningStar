@@ -425,7 +425,7 @@ var MORNINGSTAR = {
 
         MORNINGSTAR.globalKnobCallback = function (slot, value, ID) {
             if (ID === "Tempo") {
-                // Interpolate the globalKnobs value in the integer range [60,180]
+                // Interpolate the Tempo value in the integer range [60,180]
                 // LINEAR INTERPOLATION: x := (c - a) * (z - y) / (b - a) + y
                 // a = 0, b = 1, z = 180, y = 60
                 this.tempo_value = Math.round(value *  120 + 60);
@@ -435,6 +435,22 @@ var MORNINGSTAR = {
             if (ID === "Reverb") {
                 this.audioManager.setReverb(value);
                 this.ui.setValue("statusLabel", 'labelvalue', "Reverb: " + value);
+            }
+            if (ID === "Distortion") {
+                // Interpolate the Tempo value in the range [-1,1]
+                // LINEAR INTERPOLATION: x := (c - a) * (z - y) / (b - a) + y
+                // a = 0, b = 1, z = 1, y = -1, c = value
+                var dist_value = (value - 0) * (1 - (-1)) / (1 - 0) + (-1);
+                this.audioManager.setDistortion(dist_value);
+                if (dist_value === -1) {
+                    this.ui.setValue("statusLabel", 'labelvalue', "Dist: Off");
+                }
+                else if (dist_value === 1) {
+                    this.ui.setValue("statusLabel", 'labelvalue', "Dist: Max");
+                }
+                else {
+                    this.ui.setValue("statusLabel", 'labelvalue', "Dist: " + dist_value.toFixed(3));
+                }
             }
             this.ui.refresh();
         };
