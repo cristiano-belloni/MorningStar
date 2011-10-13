@@ -33,10 +33,12 @@
         margin-right: auto;
         width: 920px;
         height: 570px;
+    }
+
+    .shadow {
         -moz-box-shadow: 22px 25px 20px #050505;
         -webkit-box-shadow: 22px 25px 20px #050505;
         box-shadow: 22px 25px 20px #050505;
-
     }
 
     /* This comes from the good http://www.noobcube.com/tutorials/html-css/horizontal-and-vertical-centering-using-css-a-beginners-guide-/#step8 */
