@@ -434,7 +434,7 @@ var MORNINGSTAR = {
             }
             if (ID === "Reverb") {
                 this.audioManager.setReverb(value);
-                this.ui.setValue("statusLabel", 'labelvalue', "Reverb: " + (value * 127).toFixed(3));
+                this.ui.setValue("statusLabel", 'labelvalue', "Reverb: " + Math.round(value * 127));
             }
             if (ID === "Distortion") {
                 this.audioManager.setDistortion(value);
@@ -445,7 +445,7 @@ var MORNINGSTAR = {
                     this.ui.setValue("statusLabel", 'labelvalue', "Dist: Max");
                 }
                 else {
-                    this.ui.setValue("statusLabel", 'labelvalue', "Dist: " + (value * 127).toFixed(3));
+                    this.ui.setValue("statusLabel", 'labelvalue', "Dist: " + Math.round(value * 127));
                 }
             }
             if (ID == "Velocity") {

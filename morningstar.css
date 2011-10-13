@@ -24,3 +24,19 @@
         font-family: "embedded_font";
         font-size: 19px;
     }
+
+    body {
+        background-image:url('MS_tile.png');
+        background-repeat:repeat;
+    }
+
+    #div-1 {
+        margin-left: auto;
+        margin-right: auto;
+        width: 920px;
+        height: 570px;
+        -moz-box-shadow: 22px 25px 20px #050505;
+        -webkit-box-shadow: 22px 25px 20px #050505;
+        box-shadow: 22px 25px 20px #050505;
+
+    }
