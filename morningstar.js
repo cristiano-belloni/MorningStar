@@ -506,6 +506,7 @@ var MORNINGSTAR = {
                 }
             });
             this.ui.addElement(this.label, {zIndex: 3});
+            this.ui.setValue("statusLabel", 'labelvalue', "Loading...");
 
             /* BACKGROUND */
 
@@ -731,6 +732,20 @@ var MORNINGSTAR = {
 
             }
 
+            // AUDIO ON / OFF
+            var onoffArgs = {
+                preserveBg: false,
+                isClickable: false
+            };
+
+            //
+            onoffArgs.imagesArray = loaders["onoff_loader"].images;
+                onoffArgs.top = 6;
+                onoffArgs.left = 65;
+                onoffArgs.ID = "onoff";
+                this.onoff = new Button(onoffArgs);
+                this.ui.addElement(this.onoff,  {zIndex: 10});
+
             // PIANO ROLL
 
             var  pianoKeyData = [
@@ -835,6 +850,13 @@ var MORNINGSTAR = {
                 }
             }
 
+            if (this.audioOK === true) {
+                this.ui.setValue('onoff', 'buttonvalue', 0);
+            }
+            else {
+                this.ui.setValue('onoff', 'buttonvalue', 1);
+            }
+
 
             var temp_parm;
 
@@ -892,7 +914,7 @@ var MORNINGSTAR = {
             this.ui.setValue('redled_0', 'buttonvalue', 1);
             this.ui.setValue('Velocity', 'knobvalue', this.VELOCITY_DEFAULT);
 
-            if (this.audioOk === true) {
+if (this.audioOk === true) {
                 this.ui.setValue("statusLabel", 'labelvalue', "Morning star synth");
             }
             else {
@@ -982,6 +1004,9 @@ var MORNINGSTAR = {
             // Led buttons
             mulArgs.multipleImages.push ({ID: "redled_loader", imageNames : ["Led/LedRed_off.png", "Led/LedRed_on.png"]});
             mulArgs.multipleImages.push ({ID: "greenled_loader", imageNames : ["Led/LedGreen_off.png", "Led/LedGreen_on.png"]});
+
+            // Audio on / off
+            mulArgs.multipleImages.push ({ID: "onoff_loader", imageNames : ["Audioonoff/off.png", "Audioonoff/on.png"]});
 
             // Load bg
             mulArgs.multipleImages.push ({ID: "background_loader", imageNames : ["MS_deck.png"]});
