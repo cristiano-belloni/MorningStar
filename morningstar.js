@@ -434,7 +434,7 @@ var MORNINGSTAR = {
             }
             if (ID === "Reverb") {
                 this.audioManager.setReverb(value);
-                this.ui.setValue("statusLabel", 'labelvalue', "Reverb: " + value);
+                this.ui.setValue("statusLabel", 'labelvalue', "Reverb: " + (value * 127).toFixed(3));
             }
             if (ID === "Distortion") {
                 this.audioManager.setDistortion(value);
@@ -445,13 +445,17 @@ var MORNINGSTAR = {
                     this.ui.setValue("statusLabel", 'labelvalue', "Dist: Max");
                 }
                 else {
-                    this.ui.setValue("statusLabel", 'labelvalue', "Dist: " + value.toFixed(3));
+                    this.ui.setValue("statusLabel", 'labelvalue', "Dist: " + (value * 127).toFixed(3));
                 }
             }
             if (ID == "Velocity") {
                 // Save the velocity for the highlighted step
                 this.status.steps[this.currentStep].velocity = value;
                 this.ui.setValue("statusLabel", 'labelvalue', "Vel: " + Math.round(value * 127));
+            }
+            if (ID == "Volume") {
+                WAAMorningStar.prototype.setVolume(Math.round(value * 127));
+                this.ui.setValue("statusLabel", 'labelvalue', "Vol: " + Math.round(value * 127));
             }
             this.ui.refresh();
         };
@@ -754,22 +758,30 @@ var MORNINGSTAR = {
                 this.pianoRollKeys.push(new Button(pianoKeyArgs));
                 this.ui.addElement(this.pianoRollKeys[i], {zIndex: pianoZIndex});
             }
+            
+            // AUDIO INIT
 
             this.audioOk = true;
 
-            var is_chrome = navigator.userAgent.toLowerCase().indexOf('chrome') > -1;
+            this.is_chrome = navigator.userAgent.toLowerCase().indexOf('chrome') > -1;
             
-            if (is_chrome) {
-                try {
-                    this.WAAMS = new WAAMorningStar();
-                    this.WAAMS.init();
-                    this.WAAMS.setBypass (false);
-                    this.audioManager = this.WAAMS;
+            if (this.is_chrome) {
+                this.WAAMS = new WAAMorningStar();
+                this.audioManager = this.WAAMS;
+
+                this.request = new XMLHttpRequest();
+                this.request.open("GET", "impulse-responses/matrix-reverb1.wav", true);
+                this.request.responseType = "arraybuffer";
+
+                var convoOnload = function() {
+                    console.log ("convoOnload");
+                    this.WAAMS.setConvoBuffer (this.request.response);
+                    this.afterAudio();
                 }
-                catch (err) {
-                    console.log ("Catched an exception trying to load Web Audio API: ", err, " Audio could be not loaded: ", err.description);
-                    this.audioOk = false;
-                }
+
+                this.request.onload = convoOnload.bind(MORNINGSTAR);
+                this.request.send();
+
             }
 
             else {
@@ -783,8 +795,22 @@ var MORNINGSTAR = {
                     console.log ("Catched an exception trying to load Mozilla Audio API: ", err, " Audio could be not loaded: ", err.description);
                     this.audioOk = false;
                 }
+                this.afterAudio();
             }
-            
+        }
+
+        MORNINGSTAR.afterAudio = function () {
+
+            if (this.is_chrome) {
+            try {
+                    this.WAAMS.init();
+                    this.WAAMS.setBypass (false);   
+                }
+                catch (err) {
+                    console.log ("Catched an exception trying to load Web Audio API: ", err, " Audio could be not loaded: ", err.description);
+                    this.audioOk = false;
+                }
+            }
 
             // DEFAULTS
             this.ui.setValue('PlayButton', 'buttonvalue', 0);
@@ -795,6 +821,7 @@ var MORNINGSTAR = {
             this.ui.setValue('Resonance', 'knobvalue', 100/127);
             this.ui.setValue('Volume', 'knobvalue', 100/127);
             this.ui.setValue('Envelope', 'knobvalue', 64/127);
+            this.ui.setValue('Reverb', 'knobvalue', 0);
 
             this.ui.setValue('switch', 'buttonvalue', 0);
             this.ui.setValue('greenled_0', 'buttonvalue', 1);
@@ -809,8 +836,6 @@ var MORNINGSTAR = {
             }
 
             this.ui.refresh();
-
-
         }
 
         MORNINGSTAR.init = function () {
