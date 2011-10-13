@@ -14,7 +14,6 @@
 @font-face {
         font-family: "embedded_font";
         src: url(EHSMB.TTF);
-        font-size: 19px;
     }
     .embed {
         font-family: "embedded_font";
@@ -22,7 +21,6 @@
 
     .embed_msg {
         font-family: "embedded_font";
-        font-size: 19px;
     }
 
     body {
@@ -40,3 +38,15 @@
         box-shadow: 22px 25px 20px #050505;
 
     }
+
+    /* This comes from the good http://www.noobcube.com/tutorials/html-css/horizontal-and-vertical-centering-using-css-a-beginners-guide-/#step8 */
+
+    #center_div {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        height: 570px;
+        width: 920px;
+        margin-top: -285px; /* -(1/2 height) */
+        margin-left: -460px; /* -(1/2 width) */
+  }
