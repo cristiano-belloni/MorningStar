@@ -26,6 +26,29 @@ var MORNINGSTAR = {
             currentPlayPattern: 0
         };
 
+        MORNINGSTAR.QueryString = function () {
+        // This function is anonymous, is executed immediately and
+        // the return value is assigned to QueryString!
+            var query_string = {};
+            var query = window.location.search.substring(1);
+            var vars = query.split("&");
+            for (var i=0;i<vars.length;i++) {
+                var pair = vars[i].split("=");
+                // If first entry with this name
+                if (typeof query_string[pair[0]] === "undefined") {
+                    query_string[pair[0]] = pair[1];
+                    // If second entry with this name
+                } else if (typeof query_string[pair[0]] === "string") {
+                    var arr = [ query_string[pair[0]], pair[1] ];
+                    query_string[pair[0]] = arr;
+                // If third or later entry with this name
+                } else {
+                    query_string[pair[0]].push(pair[1]);
+                }
+            }
+            return query_string;
+        } ();
+
         MORNINGSTAR.logError = function (status) {
             console.log(status);
         }
@@ -812,17 +835,58 @@ var MORNINGSTAR = {
                 }
             }
 
-            // DEFAULTS
-            this.ui.setValue('PlayButton', 'buttonvalue', 0);
-            // Tempo = 120
-            this.ui.setValue('Tempo', 'knobvalue', 0.5);
-            this.ui.setValue('Release', 'knobvalue', 100/127);
-            this.ui.setValue('Cutoff', 'knobvalue', 50/127);
-            this.ui.setValue('Resonance', 'knobvalue', 100/127);
-            this.ui.setValue('Volume', 'knobvalue', 100/127);
-            this.ui.setValue('Envelope', 'knobvalue', 64/127);
-            this.ui.setValue('Reverb', 'knobvalue', 0);
 
+            var temp_parm;
+
+            // DEFAULTS AND PARAMETERS
+            this.parseFloatParam = function (param) {
+                var tmp;
+                if (typeof(this.QueryString[param]) !== 'undefined') {
+
+                    tmp = parseFloat(this.QueryString[param], 10);
+
+                    if (isNaN(tmp) || (tmp < 0) || (tmp > 1)) {
+                        console.log ("Invalid parameter ", param, ": ", this.QueryString[param]);
+                        return false;
+                    }
+                    else  return tmp;
+                }
+                return false;
+            }
+
+            var tempo_p = 0.5;
+            if ((temp_parm = this.parseFloatParam ('tempo')) !== false) tempo_p = temp_parm;
+            this.ui.setValue('Tempo', 'knobvalue', tempo_p);
+
+            var rel_p = 100/127;
+            if ((temp_parm = this.parseFloatParam ('rel')) !== false) rel_p = temp_parm;
+            this.ui.setValue('Release', 'knobvalue', rel_p);
+            
+            var cut_p = 50/127;
+            if ((temp_parm = this.parseFloatParam ('cut')) !== false) cut_p = temp_parm;
+            this.ui.setValue('Cutoff', 'knobvalue', cut_p);
+
+            var res_p = 100/127;
+            if ((temp_parm = this.parseFloatParam ('res')) !== false) res_p = temp_parm;
+            this.ui.setValue('Resonance', 'knobvalue', res_p);
+
+            var vol_p = 100/127;
+            if ((temp_parm = this.parseFloatParam ('vol')) !== false) vol_p = temp_parm;
+            this.ui.setValue('Volume', 'knobvalue', vol_p);
+
+            var env_p = 64/127;
+            if ((temp_parm = this.parseFloatParam ('env')) !== false) env_p = temp_parm;
+            this.ui.setValue('Envelope', 'knobvalue', env_p);
+
+            var rev_p = 64/127;
+            if ((temp_parm = this.parseFloatParam ('rev')) !== false) rev_p = temp_parm;
+            this.ui.setValue('Reverb', 'knobvalue', rev_p);
+
+            var dis_p = 0;
+            if ((temp_parm = this.parseFloatParam ('dis')) !== false) dis_p = temp_parm;
+            this.ui.setValue('Distortion', 'knobvalue', dis_p);
+
+            this.ui.setValue('PlayButton', 'buttonvalue', 0);
             this.ui.setValue('switch', 'buttonvalue', 0);
             this.ui.setValue('greenled_0', 'buttonvalue', 1);
             this.ui.setValue('redled_0', 'buttonvalue', 1);
