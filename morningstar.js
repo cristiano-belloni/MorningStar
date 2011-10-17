@@ -5,7 +5,15 @@ var MORNINGSTAR = {
             status: {
                 steps: [],
                 numberOfPatterns : 1,
-                currentEditPattern : 0
+                currentEditPattern : 0,
+                res: 100/127,
+                vol: 100/127,
+                cut: 50/127,
+                rel: 100/127,
+                env: 64/127,
+                dist: 0,
+                rev: 0,
+                tempo: 0.5
             },
             STEPS_NUM : 64,
             VELOCITY_DEFAULT : 0.5,
@@ -80,6 +88,14 @@ var MORNINGSTAR = {
                 localStorage["MS.active." + i] = this.status.steps[i].active;
             }
             localStorage["MS.numberOfPatterns"] = this.status.numberOfPatterns;
+            localStorage["MS.Resonance"] = this.status.res;
+            localStorage["MS.vol"] = this.status.vol;
+            localStorage["MS.Cutoff"] = this.status.cut;
+            localStorage["MS.Release"] = this.status.rel;
+            localStorage["MS.Envelope"] = this.status.env;
+            localStorage["MS.dist"] = this.status.dist;
+            localStorage["MS.rev"] = this.status.rev;
+            localStorage["MS.tempo"] = this.status.tempo;
             return true;
         }
 
@@ -105,6 +121,16 @@ var MORNINGSTAR = {
                 console.log ("Saved status is partially empty: this shouldn't happen");
                 return false;
             }
+
+            if (isNaN(this.status.res = parseFloat(localStorage["MS.Resonance"], 10))) return false;
+            if (isNaN(this.status.vol = parseFloat(localStorage["MS.vol"], 10))) return false;
+            if (isNaN(this.status.cut = parseFloat(localStorage["MS.Cutoff"], 10))) return false;
+            if (isNaN(this.status.rel = parseFloat(localStorage["MS.Release"], 10))) return false;
+            if (isNaN(this.status.env = parseFloat(localStorage["MS.Envelope"], 10))) return false;
+            if (isNaN(this.status.dist = parseFloat(localStorage["MS.dist"], 10))) return false;
+            if (isNaN(this.status.rev = parseFloat(localStorage["MS.rev"], 10))) return false;
+            if (isNaN(this.status.tempo = parseFloat(localStorage["MS.tempo"], 10))) return false;
+
             console.log ("Restoring local status returned OK");
             return true;
         }
@@ -511,6 +537,10 @@ var MORNINGSTAR = {
                 console.log ("Calling audioManager[" + functionName + "] with value " + value + "-->" + interpolated_value);
                 this.audioManager[functionName](interpolated_value);
             }
+
+            // Save uninterpolated velocity in the local storage
+            this.saveStatePartial ("MS." + ID, value);
+
             this.ui.setValue("statusLabel", 'labelvalue', ID + ": " + interpolated_value);
             this.ui.refresh();
         };
@@ -518,18 +548,33 @@ var MORNINGSTAR = {
         MORNINGSTAR.globalKnobCallback = function (slot, value, ID) {
             if (ID === "Tempo") {
                 // Interpolate the Tempo value in the integer range [60,180]
-                // LINEAR INTERPOLATION: x := (c - a) * (z - y) / (b - a) + y
-                // a = 0, b = 1, z = 180, y = 60
+                // tempo_value is the interpolated value, to simplify calculations
                 this.tempo_value = Math.round(value *  120 + 60);
                 console.log ("TEMPO set to ", this.tempo_value);
+                
+                // Save the uninterpolated value in the local storage
+                this.saveStatePartial("MS.tempo", value);
+
+                // Display the interpolated value on the label
                 this.ui.setValue("statusLabel", 'labelvalue', "BPM: " + this.tempo_value);
             }
             if (ID === "Reverb") {
                 this.audioManager.setReverb(value);
+
+                // Save the uninterpolated value in the local storage
+                this.saveStatePartial("MS.rev", value);
+
+                // Display the interpolated value on the label
                 this.ui.setValue("statusLabel", 'labelvalue', "Reverb: " + Math.round(value * 127));
             }
             if (ID === "Distortion") {
+                // Tell audio manager we want to change distortion
                 this.audioManager.setDistortion(value);
+
+                // Save the uninterpolated value in the local storage
+                this.saveStatePartial("MS.dist", value);
+
+                // Display the interpolated value on the label, 0 is off and 1 is max value.
                 if (value === 0) {
                     this.ui.setValue("statusLabel", 'labelvalue', "Dist: Off");
                 }
@@ -543,12 +588,21 @@ var MORNINGSTAR = {
             if (ID == "Velocity") {
                 // Save the velocity for the highlighted step
                 this.status.steps[this.currentStep].velocity = value;
-                // Save velocity in the local storage, if any.
+
+                // Save uninterpolated velocity in the local storage
                 this.saveStatePartial ("MS.velocity." + this.currentStep, value);
+
+                // Display the interpolated value on the label
                 this.ui.setValue("statusLabel", 'labelvalue', "Vel: " + Math.round(value * 127));
             }
             if (ID == "Volume") {
+                // Tell audio manager we want to change volume
                 WAAMorningStar.prototype.setVolume(Math.round(value * 127));
+                
+                // Save uninterpolated velocity in the local storage
+                this.saveStatePartial ("MS.vol", value);
+
+                // Display the interpolated value on the label
                 this.ui.setValue("statusLabel", 'labelvalue', "Vol: " + Math.round(value * 127));
             }
             this.ui.refresh();
@@ -947,37 +1001,37 @@ var MORNINGSTAR = {
                 return false;
             }
 
-            var tempo_p = 0.5;
+            var tempo_p = this.status.tempo;
             if ((temp_parm = this.parseFloatParam ('tempo')) !== false) tempo_p = temp_parm;
             this.ui.setValue('Tempo', 'knobvalue', tempo_p);
 
-            var rel_p = 100/127;
+            var rel_p = this.status.rel;
             if ((temp_parm = this.parseFloatParam ('rel')) !== false) rel_p = temp_parm;
             this.ui.setValue('Release', 'knobvalue', rel_p);
             
-            var cut_p = 50/127;
+            var cut_p = this.status.cut;
             if ((temp_parm = this.parseFloatParam ('cut')) !== false) cut_p = temp_parm;
             this.ui.setValue('Cutoff', 'knobvalue', cut_p);
 
-            var res_p = 100/127;
+            var res_p = this.status.res;
             if ((temp_parm = this.parseFloatParam ('res')) !== false) res_p = temp_parm;
             this.ui.setValue('Resonance', 'knobvalue', res_p);
 
-            var vol_p = 100/127;
+            var vol_p = this.status.vol;
             if ((temp_parm = this.parseFloatParam ('vol')) !== false) vol_p = temp_parm;
             this.ui.setValue('Volume', 'knobvalue', vol_p);
 
-            var env_p = 64/127;
+            var env_p = this.status.env;
             if ((temp_parm = this.parseFloatParam ('env')) !== false) env_p = temp_parm;
             this.ui.setValue('Envelope', 'knobvalue', env_p);
 
-            var rev_p = 64/127;
+            var rev_p = this.status.rev;
             if ((temp_parm = this.parseFloatParam ('rev')) !== false) rev_p = temp_parm;
             this.ui.setValue('Reverb', 'knobvalue', rev_p);
 
-            var dis_p = 0;
-            if ((temp_parm = this.parseFloatParam ('dis')) !== false) dis_p = temp_parm;
-            this.ui.setValue('Distortion', 'knobvalue', dis_p);
+            var dist_p = this.status.dist;
+            if ((temp_parm = this.parseFloatParam ('dist')) !== false) dist_p = temp_parm;
+            this.ui.setValue('Distortion', 'knobvalue', dist_p);
 
             this.ui.setValue('PlayButton', 'buttonvalue', 0);
             this.ui.setValue('switch', 'buttonvalue', this.status.numberOfPatterns - 1);
