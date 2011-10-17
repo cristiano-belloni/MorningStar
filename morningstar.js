@@ -53,6 +53,54 @@ var MORNINGSTAR = {
             console.log(status);
         }
 
+        MORNINGSTAR.supportsLocalStorage = function() {
+            try {
+                return 'localStorage' in window && window['localStorage'] !== null;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        MORNINGSTAR.saveState = function () {
+            console.log ("Saving local status");
+            if (!this.supportsLocalStorage()) {
+                return false;
+            }
+            for (var i = 0; i < this.STEPS_NUM; i++) {
+                localStorage["MS.note." + i] = this.status.steps[i].note;
+                localStorage["MS.velocity." + i] = this.status.steps[i].velocity;
+                localStorage["MS.active." + i] = this.status.steps[i].active;
+            }
+            localStorage["MS.numberOfPatterns"] = this.status.numberOfPatterns;
+            return true;
+        }
+
+        MORNINGSTAR.resumeState = function () {
+            console.log ("Restoring local status");
+            if (!this.supportsLocalStorage()) { return false; }
+
+            for (var i = 0; i < this.STEPS_NUM; i++) {
+                this.status.steps[i] = {};
+                this.status.steps[i].note = parseInt(localStorage["MS.note." + i], 10);
+                this.status.steps[i].velocity = parseFloat(localStorage["MS.velocity." + i], 10);
+                this.status.steps[i].active = parseInt(localStorage["MS.active." + i], 10);
+                // If they are not there, localStorage is null and parseInt gives back NaN
+                if (isNaN(this.status.steps[i].note) || isNaN(this.status.steps[i].velocity) || isNaN(this.status.steps[i].active)) {
+                    // Saved status is (partially?) empty: return false.
+                    console.log ("Saved status is (partially?) empty: this can happen when there is no localStorage");
+                    return false;
+                }
+            }
+            this.status.numberOfPatterns = parseInt(localStorage["MS.numberOfPatterns"], 10);
+            if (isNaN(this.status.numberOfPatterns)) {
+                // Saved status is partially empty: return false.
+                console.log ("Saved status is partially empty: this shouldn't happen");
+                return false;
+            }
+            console.log ("Restoring local status returned OK");
+            return true;
+        }
+
         // CALLBACKS
 
         // PLAY / STOP BUTTON
@@ -218,7 +266,6 @@ var MORNINGSTAR = {
             // Turn it on on the UI. Do not invoke callbacks.
             this.ui.setValue(toSet, 'buttonvalue', 1, undefined, false);
 
-
         }
 
         MORNINGSTAR.pianoUnsetAll = function (dontUnset) {
@@ -268,12 +315,14 @@ var MORNINGSTAR = {
                 // throw
                 console.log ("Shouldn't be here!!");
             }
+            // Note changed, save the local state.
+            this.saveState();
             this.ui.refresh();
         }
 
-        MORNINGSTAR.pianoKeyChange = function (newStep) {
+        MORNINGSTAR.pianoKeyChange = function (newStep, force) {
 
-            if (this.currentStep !== newStep) {
+            if ((this.currentStep !== newStep) || (force === true)) {
                 if (this.audioOk === true) {
                         // currentStep will change. Send a noteOff to truncate playing.
                         this.audioManager.noteOff();
@@ -291,9 +340,8 @@ var MORNINGSTAR = {
             }
         }
 
-        MORNINGSTAR.hlChange = function (newStep) {
-        if (this.currentHLStep !== newStep) {
-
+        MORNINGSTAR.hlChange = function (newStep, force) {
+        if ((this.currentHLStep !== newStep) || (force === true)){
                 // Set current highlight as invisible
                 this.ui.setVisible(this.currentHLStep + '_hl', false);
                 // setVisible = false makes it unclickable. Make it clickable again.
@@ -304,16 +352,21 @@ var MORNINGSTAR = {
             }
         }
 
+        MORNINGSTAR.setStep = function (newStep, newRealStep, force) {
+            // Change the highlighted slot
+            this.hlChange (newStep, newRealStep, force);
+            // Trigger a new note in the piano, if needed
+            this.pianoKeyChange (newRealStep, force);
+            // Set the new current step
+            this.currentStep = newRealStep;
+        }
+
         MORNINGSTAR.hlCallback = function (slot, value, ID) {
 
             var newStep = parseInt(ID.split('_')[0], 10);
             var newRealStep = newStep + this.STEPS_PER_PATTERN * this.status.currentEditPattern;
-            // Change the highlighted slot
-            this.hlChange (newStep, newRealStep);
-            // Trigger a new note in the piano, if needed
-            this.pianoKeyChange (newRealStep);
-            // Set the new current step
-            this.currentStep = newRealStep;
+
+            this.setStep (newStep, newRealStep);
             
             this.ui.refresh();
         }
@@ -341,7 +394,9 @@ var MORNINGSTAR = {
 
             // Set the new current step
             this.currentStep = newRealStep;
-
+            
+            // Step changed, save the local state.
+            this.saveState();
             this.ui.refresh();
 
         };
@@ -362,6 +417,8 @@ var MORNINGSTAR = {
 
             this.ui.setValue("statusLabel", 'labelvalue', "Edit pattern: " + (parseInt(ledToGo,10)+ 1));
 
+            // Current pattern changed, save the local state.
+            this.saveState();
             this.ui.refresh();
         }
 
@@ -384,6 +441,8 @@ var MORNINGSTAR = {
 
             this.ui.setValue("statusLabel", 'labelvalue', "Edit pattern: " + (parseInt(ledToGo,10)+ 1));
 
+            // Current pattern changed, save the local state.
+            this.saveState();
             this.ui.refresh();
         }
 
@@ -396,8 +455,8 @@ var MORNINGSTAR = {
             return;
         }
 
-        MORNINGSTAR.switchPattern = function (newpattern) {
-            if (this.status.currentEditPattern === newpattern) {
+        MORNINGSTAR.switchPattern = function (newpattern, force) {
+            if ((this.status.currentEditPattern === newpattern) && (force !== true)){
                 console.log ("Pattern is the same, not switching");
                 return;
             }
@@ -431,6 +490,8 @@ var MORNINGSTAR = {
 
             this.ui.setValue("statusLabel", 'labelvalue', "N. of patterns: " + this.status.numberOfPatterns);
 
+            // Total patterns changed, save the local state.
+            this.saveState();
             this.ui.refresh();
         }
 
@@ -909,10 +970,16 @@ var MORNINGSTAR = {
             this.ui.setValue('Distortion', 'knobvalue', dis_p);
 
             this.ui.setValue('PlayButton', 'buttonvalue', 0);
-            this.ui.setValue('switch', 'buttonvalue', 0);
+            this.ui.setValue('switch', 'buttonvalue', this.status.numberOfPatterns - 1);
             this.ui.setValue('greenled_0', 'buttonvalue', 1);
             this.ui.setValue('redled_0', 'buttonvalue', 1);
-            this.ui.setValue('Velocity', 'knobvalue', this.VELOCITY_DEFAULT);
+            this.ui.setValue('Velocity', 'knobvalue', this.status.steps[0].velocity);
+            // Set the initial step (0)
+            this.ui.setValue('0', 'buttonvalue', this.status.steps[0].active);
+            // set the initial piano roll
+            if (this.status.steps[0].note >= 0) {
+                this.ui.setValue(this.status.steps[0].note + "_pr", 'buttonvalue', 1);
+            }
 
 if (this.audioOk === true) {
                 this.ui.setValue("statusLabel", 'labelvalue', "Morning star synth");
@@ -921,6 +988,10 @@ if (this.audioOk === true) {
                 this.ui.setValue("statusLabel", 'labelvalue', "Audio not OK");
             }
 
+            // We still need to display the first pattern, in case we restored
+            // the saved state.
+            this.switchPattern (0, true);
+            
             this.ui.refresh();
         }
 
@@ -940,14 +1011,18 @@ if (this.audioOk === true) {
             }
 
             // Build the status array.
-            for (var i = 0; i < this.STEPS_NUM; i+=1) {
-                this.status.steps[i] = {};
-                // Not active, by default
-                this.status.steps[i].active = 0;
-                // Note = -1 means that there is no note associated with the step
-                this.status.steps[i].note = -1;
-                // This depends on the initial velocity value
-                this.status.steps[i].velocity = this.VELOCITY_DEFAULT;
+            // Try to resume saved state.
+            if (this.resumeState() === false) {
+                // No state? Fall back to default parameters.
+                for (var i = 0; i < this.STEPS_NUM; i+=1) {
+                    this.status.steps[i] = {};
+                    // Not active, by default
+                    this.status.steps[i].active = 0;
+                    // Note = -1 means that there is no note associated with the step
+                    this.status.steps[i].note = -1;
+                    // This depends on the initial velocity value
+                    this.status.steps[i].velocity = this.VELOCITY_DEFAULT;
+                }
             }
 
             // Load keys
