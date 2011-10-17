@@ -25,7 +25,10 @@ WAAMorningStar.prototype.createWSCurve = function (amount, n_samples) {
 
 WAAMorningStar.prototype.process = function(event) {
     // Get left/right input and output arrays
-    var outputArray = event.outputBuffer.getChannelData(1);
+    var outputArray = [];
+    outputArray[0] = event.outputBuffer.getChannelData(0);
+    outputArray[1] = event.outputBuffer.getChannelData(1);
+    
     ND.process (outputArray);
 }
 

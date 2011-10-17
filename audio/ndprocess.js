@@ -30,8 +30,13 @@ ND.process = function (data) {
 
 var /*int*/ i;
 
+// Upmix to stereo if given two channels (array of arrays). Could be implemented
+// more elegantly.
+var len = data.length;
+if (len == 2) len = data[0].length;
+
     if (this.bypass === false) {
-        for( i = 0; i < data.length; i+=1) {
+        for( i = 0; i < len; i+=1) {
             if(this.cdelay <= 0) {
 
                 this.freq = ((this.portamento / 127) * 0.9) * this.freq + (1 - ((this.portamento / 127) * 0.9)) * this.tfreq;
@@ -79,9 +84,21 @@ var /*int*/ i;
                     this.sample += (1 + k) * this.sample / (1+ k * Math.abs(this.sample));
                 }
             }
-
+            
             // Velocity control does nothing, had to use it as a gain here.
-            data[i] = this.sample * (this.volume / 127) * (this.vel /127) ;
+            var curr_sample = this.sample * (this.volume / 127) * (this.vel /127) ;
+            
+            // Upmix to stereo if given two channels (array of arrays)
+            if (data.length === 2) {
+                data[0][i] = 0.707 * curr_sample;
+                data[1][i] = 0.707 * curr_sample;
+            }
+            
+            // Mono if given only one channel (array)
+            else {
+                data[i] = curr_sample; 
+            }
+            
         }
     }
 }
