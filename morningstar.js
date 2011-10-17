@@ -1001,37 +1001,54 @@ var MORNINGSTAR = {
                 return false;
             }
 
-            var tempo_p = this.status.tempo;
-            if ((temp_parm = this.parseFloatParam ('tempo')) !== false) tempo_p = temp_parm;
-            this.ui.setValue('Tempo', 'knobvalue', tempo_p);
+            if ((temp_parm = this.parseFloatParam ('tempo')) !== false) {
+                this.status.tempo = temp_parm;
+                this.saveStatePartial ("MS.tempo",this.status.tempo);
+            }
+            this.ui.setValue('Tempo', 'knobvalue', this.status.tempo);
 
-            var rel_p = this.status.rel;
-            if ((temp_parm = this.parseFloatParam ('rel')) !== false) rel_p = temp_parm;
-            this.ui.setValue('Release', 'knobvalue', rel_p);
+
+            if ((temp_parm = this.parseFloatParam ('rel')) !== false) {
+                this.status.rel = temp_parm;
+                this.saveStatePartial ("MS.Release",this.status.rel);
+            }
+            this.ui.setValue('Release', 'knobvalue', this.status.rel);
             
-            var cut_p = this.status.cut;
-            if ((temp_parm = this.parseFloatParam ('cut')) !== false) cut_p = temp_parm;
-            this.ui.setValue('Cutoff', 'knobvalue', cut_p);
+            if ((temp_parm = this.parseFloatParam ('cut')) !== false) {
+                this.status.cut = temp_parm;
+                this.saveStatePartial ("MS.Cutoff",this.status.cut);
+            }
+            this.ui.setValue('Cutoff', 'knobvalue', this.status.cut);
 
-            var res_p = this.status.res;
-            if ((temp_parm = this.parseFloatParam ('res')) !== false) res_p = temp_parm;
-            this.ui.setValue('Resonance', 'knobvalue', res_p);
+            if ((temp_parm = this.parseFloatParam ('res')) !== false) {
+                this.status.res = temp_parm;
+                this.saveStatePartial ("MS.Resonance",this.status.res);
+            }
+            this.ui.setValue('Resonance', 'knobvalue', this.status.res);
 
-            var vol_p = this.status.vol;
-            if ((temp_parm = this.parseFloatParam ('vol')) !== false) vol_p = temp_parm;
-            this.ui.setValue('Volume', 'knobvalue', vol_p);
+            if ((temp_parm = this.parseFloatParam ('vol')) !== false) {
+                this.status.vol = temp_parm;
+                this.saveStatePartial ("MS.vol",this.status.vol);
+            }
+            this.ui.setValue('Volume', 'knobvalue', this.status.vol);
 
-            var env_p = this.status.env;
-            if ((temp_parm = this.parseFloatParam ('env')) !== false) env_p = temp_parm;
-            this.ui.setValue('Envelope', 'knobvalue', env_p);
+            if ((temp_parm = this.parseFloatParam ('env')) !== false) {
+                this.status.env = temp_parm;
+                this.saveStatePartial ("MS.Envelope",this.status.env);
+            }
+            this.ui.setValue('Envelope', 'knobvalue', this.status.env);
 
-            var rev_p = this.status.rev;
-            if ((temp_parm = this.parseFloatParam ('rev')) !== false) rev_p = temp_parm;
-            this.ui.setValue('Reverb', 'knobvalue', rev_p);
+            if ((temp_parm = this.parseFloatParam ('rev')) !== false) {
+                this.status.rev = temp_parm;
+                this.saveStatePartial ("MS.rev",this.status.rev);
+            }
+            this.ui.setValue('Reverb', 'knobvalue', this.status.rev);
 
-            var dist_p = this.status.dist;
-            if ((temp_parm = this.parseFloatParam ('dist')) !== false) dist_p = temp_parm;
-            this.ui.setValue('Distortion', 'knobvalue', dist_p);
+            if ((temp_parm = this.parseFloatParam ('dist')) !== false) {
+                this.status.dist = temp_parm;
+                this.saveStatePartial ("MS.dist",this.status.dist);
+            }
+            this.ui.setValue('Distortion', 'knobvalue', this.status.dist);
 
             this.ui.setValue('PlayButton', 'buttonvalue', 0);
             this.ui.setValue('switch', 'buttonvalue', this.status.numberOfPatterns - 1);
