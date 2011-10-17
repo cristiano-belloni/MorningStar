@@ -61,6 +61,14 @@ var MORNINGSTAR = {
             }
         }
 
+        MORNINGSTAR.saveStatePartial = function (attribute, value) {
+            console.log ("Saving local status for attribute " + attribute);
+            if (!this.supportsLocalStorage()) {
+                return false;
+            }
+            localStorage[attribute] = value;
+        }
+
         MORNINGSTAR.saveState = function () {
             console.log ("Saving local status");
             if (!this.supportsLocalStorage()) {
@@ -535,6 +543,8 @@ var MORNINGSTAR = {
             if (ID == "Velocity") {
                 // Save the velocity for the highlighted step
                 this.status.steps[this.currentStep].velocity = value;
+                // Save velocity in the local storage, if any.
+                this.saveStatePartial ("MS.velocity." + this.currentStep, value);
                 this.ui.setValue("statusLabel", 'labelvalue', "Vel: " + Math.round(value * 127));
             }
             if (ID == "Volume") {
