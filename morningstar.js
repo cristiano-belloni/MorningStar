@@ -101,7 +101,7 @@ var MORNINGSTAR = {
 
         MORNINGSTAR.resumeState = function () {
             console.log ("Restoring local status");
-            if (!this.supportsLocalStorage()) { return false; }
+            if (!this.supportsLocalStorage()) {return false;}
 
             for (var i = 0; i < this.STEPS_NUM; i++) {
                 this.status.steps[i] = {};
@@ -133,6 +133,18 @@ var MORNINGSTAR = {
 
             console.log ("Restoring local status returned OK");
             return true;
+        }
+
+        MORNINGSTAR.restoreDefaultState = function () {
+            for (var i = 0; i < this.STEPS_NUM; i+=1) {
+                this.status.steps[i] = {};
+                // Not active, by default
+                this.status.steps[i].active = 0;
+                // Note = -1 means that there is no note associated with the step
+                this.status.steps[i].note = -1;
+                // This depends on the initial velocity value
+                this.status.steps[i].velocity = this.VELOCITY_DEFAULT;
+            }
         }
 
         // CALLBACKS
@@ -503,7 +515,7 @@ var MORNINGSTAR = {
             var newStep = this.STEPS_PER_PATTERN * this.status.currentEditPattern + this.currentHLStep;
             console.log("Switching currentStep to", this.currentStep);
             // Trigger a new note in the piano, if needed
-            this.pianoKeyChange (newStep);
+            this.pianoKeyChange (newStep, force);
 
             this.currentStep = newStep;
 
@@ -607,6 +619,14 @@ var MORNINGSTAR = {
             }
             this.ui.refresh();
         };
+
+        MORNINGSTAR.clearCallback = function(slot, value, ID) {
+            console.log ("Clear callback called");
+            this.restoreDefaultState();
+            this.saveState();
+            this.switchPattern (0, true);
+            this.ui.refresh();
+        }
 
         MORNINGSTAR.afterLoading = function (loaders) {
 
@@ -857,6 +877,21 @@ var MORNINGSTAR = {
 
             }
 
+            // CLEAR PATTERN BUTTON (TODO GRAPHICS)
+            var clearArgs = {
+                preserveBg: false,
+                isClickable: true,
+                top: 6,
+                left: 125,
+                ID: "clear",
+                imagesArray : loaders["greenled_loader"].images,
+                onValueSet : this.clearCallback.bind(MORNINGSTAR)
+            };
+
+            this.clear = new Button (clearArgs);
+            this.ui.addElement(this.clear,  {zIndex: 10});
+
+
             // AUDIO ON / OFF
             var onoffArgs = {
                 preserveBg: false,
@@ -1095,15 +1130,7 @@ if (this.audioOk === true) {
             // Try to resume saved state.
             if (this.resumeState() === false) {
                 // No state? Fall back to default parameters.
-                for (var i = 0; i < this.STEPS_NUM; i+=1) {
-                    this.status.steps[i] = {};
-                    // Not active, by default
-                    this.status.steps[i].active = 0;
-                    // Note = -1 means that there is no note associated with the step
-                    this.status.steps[i].note = -1;
-                    // This depends on the initial velocity value
-                    this.status.steps[i].velocity = this.VELOCITY_DEFAULT;
-                }
+                this.restoreDefaultState();
             }
 
             // Load keys
