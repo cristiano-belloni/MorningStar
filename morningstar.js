@@ -156,6 +156,15 @@ var MORNINGSTAR = {
                 string += "a" + i + "=" + this.status.steps[i].active + "&";
                 string += "v" + i + "=" + this.status.steps[i].velocity;
             }
+            string += "&res=" + this.status.res;
+            string += "&vol=" + this.status.vol;
+            string += "&cut=" + this.status.cut;
+            string += "&rel=" + this.status.rel;
+            string += "&env=" + this.status.env;
+            string += "&dist=" + this.status.dist;
+            string += "&rev=" + this.status.rev;
+            string += "&tempo=" + this.status.tempo;
+            
             return string;
         }
 
