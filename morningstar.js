@@ -16,6 +16,7 @@ var MORNINGSTAR = {
                 tempo: 0.5
             },
             STEPS_NUM : 64,
+            NOTES_NUM : 24,
             VELOCITY_DEFAULT : 0.5,
             PATTERN_NUM: 4,
             STEPS_PER_PATTERN: 16,
@@ -145,6 +146,17 @@ var MORNINGSTAR = {
                 // This depends on the initial velocity value
                 this.status.steps[i].velocity = this.VELOCITY_DEFAULT;
             }
+        }
+        
+        MORNINGSTAR.exportParameters = function() {
+            var string = "?";
+            for (var i = 0; i < this.STEPS_NUM; i += 1) {
+                if (i !== 0) string += "&";
+                string += "n" + i + "=" + this.status.steps[i].note + "&";
+                string += "a" + i + "=" + this.status.steps[i].active + "&";
+                string += "v" + i + "=" + this.status.steps[i].velocity;
+            }
+            return string;
         }
 
         // CALLBACKS
@@ -627,6 +639,11 @@ var MORNINGSTAR = {
             this.switchPattern (0, true);
             this.ui.refresh();
         }
+        
+        MORNINGSTAR.exportCallback = function (slot, value, ID) {
+            var string = this.exportParameters();
+            console.log ("Export string: " + string);
+        }
 
         MORNINGSTAR.afterLoading = function (loaders) {
 
@@ -890,6 +907,20 @@ var MORNINGSTAR = {
 
             this.clear = new Button (clearArgs);
             this.ui.addElement(this.clear,  {zIndex: 10});
+            
+            // EXPORT SONG BUTTON (TODO GRAPHICS)
+            var exportArgs = {
+                preserveBg: false,
+                isClickable: true,
+                top: 6,
+                left: 155,
+                ID: "export",
+                imagesArray : loaders["redled_loader"].images,
+                onValueSet : this.exportCallback.bind(MORNINGSTAR)
+            };
+
+            this.exportButton = new Button (exportArgs);
+            this.ui.addElement(this.exportButton,  {zIndex: 10});
 
 
             // AUDIO ON / OFF
@@ -1021,6 +1052,8 @@ var MORNINGSTAR = {
             var temp_parm;
 
             // DEFAULTS AND PARAMETERS
+            
+            // THESE FUNCTION PARSE THE QUERY STRING
             this.parseFloatParam = function (param) {
                 var tmp;
                 if (typeof(this.QueryString[param]) !== 'undefined') {
@@ -1035,6 +1068,62 @@ var MORNINGSTAR = {
                 }
                 return false;
             }
+            
+            this.parseNoteParameters = function () {
+                var tmp;
+                for (var i = 0; i < this.STEPS_NUM; i += 1) {
+                    if (typeof(this.QueryString["n"+i]) !== 'undefined') {
+                        
+                        tmp = parseInt(this.QueryString["n"+i], 10);
+
+                        if (isNaN(tmp) || (tmp < -1) || (tmp >= this.NOTES_NUM)) {
+                            console.log ("Invalid note ", i, ": ", this.QueryString["n"+i]);
+                        }
+                        else  {
+                            console.log ("Valid note ", i, ": ", this.QueryString["n"+i]);
+                        }
+                    }
+                }
+            }
+            
+            this.parseActiveParameters = function () {
+                var tmp;
+                for (var i = 0; i < this.STEPS_NUM; i += 1) {
+                    if (typeof(this.QueryString["a"+i]) !== 'undefined') {
+                        
+                        tmp = parseInt(this.QueryString["a"+i], 10);
+
+                        if (isNaN(tmp) || ((tmp !== 0) && (tmp !== 1))) {
+                            console.log ("Invalid activeness for note ", i, ": ", this.QueryString["a"+i]);
+                        }
+                        else  {
+                            console.log ("Valid activeness for note ", i, ": ", tmp);
+                        }
+                    }
+                }
+            }
+            
+            this.parseVelocityParameters = function () {
+                var tmp;
+                for (var i = 0; i < this.STEPS_NUM; i += 1) {
+                    if (typeof(this.QueryString["v"+i]) !== 'undefined') {
+                        
+                        tmp = parseFloat(this.QueryString["v"+i], 10);
+
+                        if (isNaN(tmp) || (tmp < 0) || (tmp > 1)) {
+                            console.log ("Invalid velocity for note ", i, ": ", this.QueryString["v"+i]);
+                        }
+                        else  {
+                            console.log ("Valid velocity for note ", i, ": ", tmp);
+                        }
+                    }
+                }
+            }
+            
+            // DO THE PARSING AND CHANGE THE STATUS, IF NEEDED.
+            this.parseNoteParameters();
+            this.parseActiveParameters();
+            this.parseVelocityParameters();
 
             if ((temp_parm = this.parseFloatParam ('tempo')) !== false) {
                 this.status.tempo = temp_parm;
