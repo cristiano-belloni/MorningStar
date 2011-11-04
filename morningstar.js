@@ -1250,7 +1250,7 @@ var MORNINGSTAR = {
             this.ui.setValue({elementID: '0', value: this.status.steps[0].active});
             // set the initial piano roll
             if (this.status.steps[0].note >= 0) {
-                this.ui.setValue({elementID: (this.status.steps[0].note + "_pr"), value: 1});
+                this.ui.setValue({elementID: (this.status.steps[0].note + "_pr"), value: 1, fireCallback: false});
             }
 
 if (this.audioOk === true) {
