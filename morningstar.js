@@ -1137,7 +1137,9 @@ var MORNINGSTAR = {
                             console.log ("Invalid note ", i, ": ", this.QueryString["n"+i]);
                         }
                         else  {
-                            console.log ("Valid note ", i, ": ", this.QueryString["n"+i]);
+                            console.log ("Valid note ", i, ": ", tmp);
+                            // Set it in the status
+                            this.status.steps[i].note = tmp;
                         }
                     }
                 }
@@ -1155,6 +1157,8 @@ var MORNINGSTAR = {
                         }
                         else  {
                             console.log ("Valid activeness for note ", i, ": ", tmp);
+                            // Set it in the status
+                            this.status.steps[i].active = tmp;
                         }
                     }
                 }
@@ -1172,6 +1176,8 @@ var MORNINGSTAR = {
                         }
                         else  {
                             console.log ("Valid velocity for note ", i, ": ", tmp);
+                            // Set it in the status
+                            this.status.steps[i].velocity = tmp;
                         }
                     }
                 }
