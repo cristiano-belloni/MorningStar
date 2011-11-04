@@ -706,6 +706,10 @@ var MORNINGSTAR = {
         MORNINGSTAR.exportCallback = function (slot, value, ID) {
             var string = this.exportParameters();
             console.log ("Export string: " + string);
+            
+            this.message.innerHTML = "Parameters exported to clipboard";
+            this.d_message.style.zIndex = 100;
+            
         }
 
         MORNINGSTAR.afterLoading = function (loaders) {
@@ -1290,6 +1294,7 @@ if (this.audioOk === true) {
             
             // Get the splash screen
             this.message = document.getElementById("message");
+            this.d_message = document.getElementById("div-message");
             this.message.innerHTML = "Loading resources...";
 
             // Load keys
