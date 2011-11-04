@@ -759,15 +759,13 @@ var MORNINGSTAR = {
                 left: 0,
                 top: 445,
                 image: loaders["highlight_loader"].images[0],
-                isClickable: true,
                 onValueSet: this.hlCallback.bind(MORNINGSTAR)
             };
 
             var keyArgs = {
                 /*ID: "note",*/
                 left:  0,
-                top: 447,
-                isClickable: true
+                top: 447
             };
 
             keyArgs.onValueSet = this.keyCallback.bind(MORNINGSTAR);
@@ -814,8 +812,7 @@ var MORNINGSTAR = {
             // BYPASS / PLAY / REPEAT BUTTONS
 
             var bpArgs = {
-                top: 153,
-                isClickable: true
+                top: 153
             };
 
             bpArgs.ID = "PlayButton";
@@ -856,7 +853,6 @@ var MORNINGSTAR = {
             var instrKnobArgs = {
                 image : loaders["white_knob_loader"].images[0],
                 sensitivity : 5000,
-                isClickable: true,
                 initAngValue: 270,
                 angSteps : 127,
                 startAngValue: 218,
@@ -885,7 +881,6 @@ var MORNINGSTAR = {
             var globalKnobArgs = {
                 image : loaders["black_knob_loader"].images[0],
                 sensitivity : 5000,
-                isClickable: true,
                 initAngValue: 270,
                 angSteps : 120,
                 startAngValue: 218,
@@ -907,7 +902,6 @@ var MORNINGSTAR = {
                 ID : "switch",
                 top: 69,
                 left: 414,
-                isClickable: true,
                 imagesArray : loaders["switch_loader"].images,
                 onValueSet : this.switchCallback.bind(MORNINGSTAR)
             };
@@ -920,7 +914,6 @@ var MORNINGSTAR = {
                 ID:"minus_button",
                 top: 140,
                 left: 416,
-                isClickable: true,
                 imagesArray : loaders["minus_loader"].images,
                 onValueSet : this.minusCallback.bind(MORNINGSTAR)
             };
@@ -963,7 +956,6 @@ var MORNINGSTAR = {
 
             // CLEAR PATTERN BUTTON (TODO GRAPHICS)
             var clearArgs = {
-                isClickable: true,
                 top: 6,
                 left: 125,
                 ID: "clear",
@@ -976,7 +968,6 @@ var MORNINGSTAR = {
             
             // EXPORT SONG BUTTON (TODO GRAPHICS)
             var exportArgs = {
-                isClickable: true,
                 top: 6,
                 left: 155,
                 ID: "export",
@@ -1032,7 +1023,6 @@ var MORNINGSTAR = {
 
             var pianoKeyArgs = {
                 top: 276,
-                isClickable: true,
                 onValueSet: this.pianoCallback.bind(MORNINGSTAR)
             };
 

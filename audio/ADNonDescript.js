@@ -16,6 +16,8 @@ AudioDataNonDescript.prototype.init = function (audioParameters) {
   this.currentSoundSample = 0;
   /* todo we want a new() here */
   this.NonDescriptDSP = ND;
+  /* Distortion implemented in javascript with MozAudio */
+  this.NonDescriptDSP.IMPLEMENT_DISTORTION = true;
   this.NonDescriptDSP.init(this.sampleRate);
   this.audioSource = new NonDescriptSource(this.sampleRate);
   this.audioDestination = new AudioDataDestination();
@@ -72,6 +74,22 @@ AudioDataNonDescript.prototype.setVolume = function (volValue) {
 
 AudioDataNonDescript.prototype.setBypass = function (bypassON) {
     ND.bypass = bypassON;
+}
+
+AudioDataNonDescript.prototype.setReverb = function (revValue) {
+    console.log ("Reverb not implemented!");
+}
+
+AudioDataNonDescript.prototype.setDistortion = function (distValue) {
+    var distCorrect = distValue;
+    if (distValue < -1) {
+        distCorrect = -1;
+    }
+    if (distValue >= 1) {
+        distCorrect = 0.985;
+    }
+    
+    ND.dist = distCorrect;
 }
 
 
