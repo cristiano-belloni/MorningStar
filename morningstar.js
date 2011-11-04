@@ -564,14 +564,39 @@ var MORNINGSTAR = {
 
         MORNINGSTAR.instrKnobCallback = function (slot, value, ID) {
              if (this.audioOk === true) {
+                 
                 // Interpolate the instrKnobs value in the integer range [0,127]
                 var interpolated_value = Math.round(value * 127);
+                
+                // Call the corresponding function in the audio manager
                 var functionName = "set" + ID;
                 console.log ("Calling audioManager[" + functionName + "] with value " + value + "-->" + interpolated_value);
                 this.audioManager[functionName](interpolated_value);
             }
+            
+            if (ID === "Resonance") {
+                // Save the uninterpolated value in the status object
+                this.status.res = value
+            }
+            
+            else if (ID === "Cutoff") {
+                // Save the uninterpolated value in the status object
+                this.status.cut = value;
+            }
+            
+            else if (ID === "Envelope") {
+                // Save the uninterpolated value in the status object
+                this.status.env = value;
+            }
+            
+            else if (ID === "Release") {
+                // Save the uninterpolated value in the status object
+                this.status.rel = value;
+            }
+            
+            else throw "Unknown ID " + ID + " in instrKnobCallback, this shouldn't happen";
 
-            // Save uninterpolated velocity in the local storage
+            // Save uninterpolated value in the local storage
             this.saveStatePartial ("MS." + ID, value);
 
             this.ui.setValue({elementID: "statusLabel", value: ID + ": " + interpolated_value});
@@ -585,25 +610,31 @@ var MORNINGSTAR = {
                 this.tempo_value = Math.round(value *  120 + 60);
                 console.log ("TEMPO set to ", this.tempo_value);
                 
+                // Save the uninterpolated value in the status object
+                this.status.tempo = value;
                 // Save the uninterpolated value in the local storage
                 this.saveStatePartial("MS.tempo", value);
 
                 // Display the interpolated value on the label
                 this.ui.setValue({elementID: "statusLabel", value: "BPM: " + this.tempo_value});
             }
-            if (ID === "Reverb") {
+            else if (ID === "Reverb") {
                 this.audioManager.setReverb(value);
 
+                // Save the uninterpolated value in the status object
+                this.status.rev = value;
                 // Save the uninterpolated value in the local storage
                 this.saveStatePartial("MS.rev", value);
 
                 // Display the interpolated value on the label
                 this.ui.setValue({elementID: "statusLabel", value: "Reverb: " + Math.round(value * 127)});
             }
-            if (ID === "Distortion") {
+            else if (ID === "Distortion") {
                 // Tell audio manager we want to change distortion
                 this.audioManager.setDistortion(value);
 
+                // Save the uninterpolated value in the status object
+                this.status.dist = value;
                 // Save the uninterpolated value in the local storage
                 this.saveStatePartial("MS.dist", value);
 
@@ -618,7 +649,7 @@ var MORNINGSTAR = {
                     this.ui.setValue({elementID: "statusLabel", value: "Dist: " + Math.round(value * 127)});
                 }
             }
-            if (ID == "Velocity") {
+            else if (ID == "Velocity") {
                 // Save the velocity for the highlighted step
                 this.status.steps[this.currentStep].velocity = value;
 
@@ -628,16 +659,21 @@ var MORNINGSTAR = {
                 // Display the interpolated value on the label
                 this.ui.setValue({elementID: "statusLabel", value: "Vel: " + Math.round(value * 127)});
             }
-            if (ID == "Volume") {
+            else if (ID == "Volume") {
                 // Tell audio manager we want to change volume
                 WAAMorningStar.prototype.setVolume(Math.round(value * 127));
-                
+
+                // Save the uninterpolated value in the status object
+                this.status.vol = value;
                 // Save uninterpolated velocity in the local storage
                 this.saveStatePartial ("MS.vol", value);
 
                 // Display the interpolated value on the label
                 this.ui.setValue({elementID: "statusLabel", value: "Vol: " + Math.round(value * 127)});
             }
+            
+            else throw "Unknown ID " + ID + " in globalKnobCallback, this shouldn't happen";
+            
             this.ui.refresh();
         };
 
