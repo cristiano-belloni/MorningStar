@@ -223,9 +223,9 @@ var MORNINGSTAR = {
                 //See if we need to refresh the play LED
                 if ((nextStep / this.STEPS_PER_PATTERN) !== this.currentPlayPattern) {
                     //Light the right green led
-                    this.ui.setValue("greenled_" + (nextStep / this.STEPS_PER_PATTERN), 'buttonvalue', 1);
+                    this.ui.setValue({elementID: "greenled_" + (nextStep / this.STEPS_PER_PATTERN), value: 1});
                     // Turn the previous green led off
-                    this.ui.setValue("greenled_" + this.currentPlayPattern, 'buttonvalue', 0);
+                    this.ui.setValue({elementID: "greenled_" + this.currentPlayPattern, value: 0});
                 }
                 // Update the current play pattern
                 this.currentPlayPattern = nextStep / this.STEPS_PER_PATTERN;
@@ -331,7 +331,7 @@ var MORNINGSTAR = {
         MORNINGSTAR.pianoSetNote = function (toSet) {
 
             // Turn it on on the UI. Do not invoke callbacks.
-            this.ui.setValue(toSet, 'buttonvalue', 1, undefined, false);
+            this.ui.setValue({elementID: toSet, value: 1, fireCallback: false});
 
         }
 
@@ -341,7 +341,7 @@ var MORNINGSTAR = {
                 if (this.pianoRollKeys[i].ID !== dontUnset) {
                     if (this.pianoRollKeys[i].getValue ("buttonvalue") === 1) {
                         // Turn it off on the UI. Do not invoke callbacks.
-                        this.ui.setValue(this.pianoRollKeys[i].ID, 'buttonvalue', 0, undefined, false);
+                        this.ui.setValue({elementID: this.pianoRollKeys[i].ID, value: 0, fireCallback: false});
                     }
                 }
             }
@@ -403,7 +403,7 @@ var MORNINGSTAR = {
                     this.pianoUnsetAll.call(this, null);
                 }
                 // Display the correct velocity, do not trigger the callback
-                this.ui.setValue('Velocity', 'knobvalue', this.status.steps[newStep].velocity, undefined, false);
+                this.ui.setValue({elementID: 'Velocity', value: this.status.steps[newStep].velocity, fireCallback: false});
             }
         }
 
@@ -473,16 +473,16 @@ var MORNINGSTAR = {
 
             // Set current LED to off
             console.log ("Setting off LED #", this.status.currentEditPattern);
-            this.ui.setValue("redled_" + this.status.currentEditPattern, 'buttonvalue', 0);
+            this.ui.setValue({elementID: "redled_" + this.status.currentEditPattern, value: 0});
 
             var ledToGo = (this.status.currentEditPattern + 1) % this.status.numberOfPatterns;
             // Set current LED + 1 to on
             console.log ("Setting on LED #", ledToGo, " of ", this.status.numberOfPatterns);
-            this.ui.setValue("redled_" + ledToGo, 'buttonvalue', 1);
+            this.ui.setValue({elementID: "redled_" + ledToGo, value: 1});
             
             this.switchPattern(ledToGo);
 
-            this.ui.setValue("statusLabel", 'labelvalue', "Edit pattern: " + (parseInt(ledToGo,10)+ 1));
+            this.ui.setValue({elementID: "statusLabel", value: "Edit pattern: " + (parseInt(ledToGo,10)+ 1)});
 
             // Current pattern changed, save the local state.
             this.saveState();
@@ -494,7 +494,7 @@ var MORNINGSTAR = {
 
             // Set current LED to off
             console.log ("Setting off LED #", this.status.currentEditPattern);
-            this.ui.setValue("redled_" + this.status.currentEditPattern, 'buttonvalue', 0);
+            this.ui.setValue({elementID: "redled_" + this.status.currentEditPattern, value: 0});
 
             // Set current LED - 1 to on
             var ledToGo = this.status.currentEditPattern - 1;
@@ -502,11 +502,11 @@ var MORNINGSTAR = {
                 ledToGo = this.status.numberOfPatterns - 1;
             }
             console.log ("Setting on LED #", ledToGo, " of ", this.status.numberOfPatterns);
-            this.ui.setValue("redled_" + ledToGo, 'buttonvalue', 1);
+            this.ui.setValue({elementID: "redled_" + ledToGo, value: 1});
 
             this.switchPattern(ledToGo);
 
-            this.ui.setValue("statusLabel", 'labelvalue', "Edit pattern: " + (parseInt(ledToGo,10)+ 1));
+            this.ui.setValue({elementID: "statusLabel", value: "Edit pattern: " + (parseInt(ledToGo,10)+ 1)});
 
             // Current pattern changed, save the local state.
             this.saveState();
@@ -517,7 +517,7 @@ var MORNINGSTAR = {
             // Change the highlighted slot
             for (var i = 0; i < this.STEPS_PER_PATTERN; i+=1) {
                 var stepNum = this.STEPS_PER_PATTERN * this.status.currentEditPattern + i;
-                this.ui.setValue (i.toString(), 'buttonvalue', this.status.steps[stepNum].active, undefined, false);
+                this.ui.setValue ({elementID: i.toString(), value: this.status.steps[stepNum].active, fireCallback: false});
             }
             return;
         }
@@ -549,13 +549,13 @@ var MORNINGSTAR = {
             this.status.numberOfPatterns = value + 1;
 
             if (this.status.currentEditPattern >= this.status.numberOfPatterns) {
-                this.ui.setValue("redled_" + this.status.currentEditPattern, 'buttonvalue', 0);
+                this.ui.setValue({elementID: "redled_" + this.status.currentEditPattern, value: 0});
                 this.status.currentEditPattern = this.status.numberOfPatterns - 1;
-                this.ui.setValue("redled_" + this.status.currentEditPattern, 'buttonvalue', 1);
+                this.ui.setValue({elementID: "redled_" + this.status.currentEditPattern, value: 1});
                 this.switchPattern(this.status.currentEditPattern);
             }
 
-            this.ui.setValue("statusLabel", 'labelvalue', "N. of patterns: " + this.status.numberOfPatterns);
+            this.ui.setValue({elementID: "statusLabel", value: "N. of patterns: " + this.status.numberOfPatterns});
 
             // Total patterns changed, save the local state.
             this.saveState();
@@ -574,7 +574,7 @@ var MORNINGSTAR = {
             // Save uninterpolated velocity in the local storage
             this.saveStatePartial ("MS." + ID, value);
 
-            this.ui.setValue("statusLabel", 'labelvalue', ID + ": " + interpolated_value);
+            this.ui.setValue({elementID: "statusLabel", value: ID + ": " + interpolated_value});
             this.ui.refresh();
         };
 
@@ -589,7 +589,7 @@ var MORNINGSTAR = {
                 this.saveStatePartial("MS.tempo", value);
 
                 // Display the interpolated value on the label
-                this.ui.setValue("statusLabel", 'labelvalue', "BPM: " + this.tempo_value);
+                this.ui.setValue({elementID: "statusLabel", value: "BPM: " + this.tempo_value});
             }
             if (ID === "Reverb") {
                 this.audioManager.setReverb(value);
@@ -598,7 +598,7 @@ var MORNINGSTAR = {
                 this.saveStatePartial("MS.rev", value);
 
                 // Display the interpolated value on the label
-                this.ui.setValue("statusLabel", 'labelvalue', "Reverb: " + Math.round(value * 127));
+                this.ui.setValue({elementID: "statusLabel", value: "Reverb: " + Math.round(value * 127)});
             }
             if (ID === "Distortion") {
                 // Tell audio manager we want to change distortion
@@ -609,13 +609,13 @@ var MORNINGSTAR = {
 
                 // Display the interpolated value on the label, 0 is off and 1 is max value.
                 if (value === 0) {
-                    this.ui.setValue("statusLabel", 'labelvalue', "Dist: Off");
+                    this.ui.setValue({elementID: "statusLabel", value: "Dist: Off"});
                 }
                 else if (value === 1) {
-                    this.ui.setValue("statusLabel", 'labelvalue', "Dist: Max");
+                    this.ui.setValue({elementID: "statusLabel", value: "Dist: Max"});
                 }
                 else {
-                    this.ui.setValue("statusLabel", 'labelvalue', "Dist: " + Math.round(value * 127));
+                    this.ui.setValue({elementID: "statusLabel", value: "Dist: " + Math.round(value * 127)});
                 }
             }
             if (ID == "Velocity") {
@@ -626,7 +626,7 @@ var MORNINGSTAR = {
                 this.saveStatePartial ("MS.velocity." + this.currentStep, value);
 
                 // Display the interpolated value on the label
-                this.ui.setValue("statusLabel", 'labelvalue', "Vel: " + Math.round(value * 127));
+                this.ui.setValue({elementID: "statusLabel", value: "Vel: " + Math.round(value * 127)});
             }
             if (ID == "Volume") {
                 // Tell audio manager we want to change volume
@@ -636,7 +636,7 @@ var MORNINGSTAR = {
                 this.saveStatePartial ("MS.vol", value);
 
                 // Display the interpolated value on the label
-                this.ui.setValue("statusLabel", 'labelvalue', "Vol: " + Math.round(value * 127));
+                this.ui.setValue({elementID: "statusLabel", value: "Vol: " + Math.round(value * 127)});
             }
             this.ui.refresh();
         };
@@ -677,7 +677,7 @@ var MORNINGSTAR = {
                 }
             });
             this.ui.addElement(this.label, {zIndex: 3});
-            this.ui.setValue("statusLabel", 'labelvalue', "Loading...");
+            this.ui.setValue({elementID: "statusLabel", value: "Loading..."});
 
             /* BACKGROUND */
 
@@ -705,7 +705,6 @@ var MORNINGSTAR = {
                 /*ID: "note",*/
                 left:  0,
                 top: 447,
-                preserveBg: false,
                 isClickable: true
             };
 
@@ -754,7 +753,6 @@ var MORNINGSTAR = {
 
             var bpArgs = {
                 top: 153,
-                preserveBg: false,
                 isClickable: true
             };
 
@@ -795,7 +793,6 @@ var MORNINGSTAR = {
                 image : loaders["white_knob_loader"].images[0],
                 sensitivity : 5000,
                 isClickable: true,
-                preserveBg: false,
                 initAngValue: 270,
                 angSteps : 127,
                 startAngValue: 218,
@@ -846,7 +843,6 @@ var MORNINGSTAR = {
                 ID : "switch",
                 top: 69,
                 left: 414,
-                preserveBg: false,
                 isClickable: true,
                 imagesArray : loaders["switch_loader"].images,
                 onValueSet : this.switchCallback.bind(MORNINGSTAR)
@@ -860,7 +856,6 @@ var MORNINGSTAR = {
                 ID:"minus_button",
                 top: 140,
                 left: 416,
-                preserveBg: false,
                 isClickable: true,
                 imagesArray : loaders["minus_loader"].images,
                 onValueSet : this.minusCallback.bind(MORNINGSTAR)
@@ -879,7 +874,6 @@ var MORNINGSTAR = {
 
             // LEDS
             var ledArgs = {
-                preserveBg: false,
                 isClickable: false
             };
 
@@ -905,7 +899,6 @@ var MORNINGSTAR = {
 
             // CLEAR PATTERN BUTTON (TODO GRAPHICS)
             var clearArgs = {
-                preserveBg: false,
                 isClickable: true,
                 top: 6,
                 left: 125,
@@ -919,7 +912,6 @@ var MORNINGSTAR = {
             
             // EXPORT SONG BUTTON (TODO GRAPHICS)
             var exportArgs = {
-                preserveBg: false,
                 isClickable: true,
                 top: 6,
                 left: 155,
@@ -934,7 +926,6 @@ var MORNINGSTAR = {
 
             // AUDIO ON / OFF
             var onoffArgs = {
-                preserveBg: false,
                 isClickable: false
             };
 
@@ -977,7 +968,6 @@ var MORNINGSTAR = {
 
             var pianoKeyArgs = {
                 top: 276,
-                preserveBg: false,
                 isClickable: true,
                 onValueSet: this.pianoCallback.bind(MORNINGSTAR)
             };
@@ -1051,10 +1041,10 @@ var MORNINGSTAR = {
             }
 
             if (this.audioOK === true) {
-                this.ui.setValue('onoff', 'buttonvalue', 0);
+                this.ui.setValue({elementID: 'onoff', value: 0});
             }
             else {
-                this.ui.setValue('onoff', 'buttonvalue', 1);
+                this.ui.setValue({elementID:'onoff', value: 1});
             }
 
 
@@ -1138,68 +1128,68 @@ var MORNINGSTAR = {
                 this.status.tempo = temp_parm;
                 this.saveStatePartial ("MS.tempo",this.status.tempo);
             }
-            this.ui.setValue('Tempo', 'knobvalue', this.status.tempo);
+            this.ui.setValue({elementID: 'Tempo', value: this.status.tempo});
 
 
             if ((temp_parm = this.parseFloatParam ('rel')) !== false) {
                 this.status.rel = temp_parm;
                 this.saveStatePartial ("MS.Release",this.status.rel);
             }
-            this.ui.setValue('Release', 'knobvalue', this.status.rel);
+            this.ui.setValue({elementID: 'Release', value: this.status.rel});
             
             if ((temp_parm = this.parseFloatParam ('cut')) !== false) {
                 this.status.cut = temp_parm;
                 this.saveStatePartial ("MS.Cutoff",this.status.cut);
             }
-            this.ui.setValue('Cutoff', 'knobvalue', this.status.cut);
+            this.ui.setValue({elementID: 'Cutoff', value: this.status.cut});
 
             if ((temp_parm = this.parseFloatParam ('res')) !== false) {
                 this.status.res = temp_parm;
                 this.saveStatePartial ("MS.Resonance",this.status.res);
             }
-            this.ui.setValue('Resonance', 'knobvalue', this.status.res);
+            this.ui.setValue({elementID: 'Resonance', value: this.status.res});
 
             if ((temp_parm = this.parseFloatParam ('vol')) !== false) {
                 this.status.vol = temp_parm;
                 this.saveStatePartial ("MS.vol",this.status.vol);
             }
-            this.ui.setValue('Volume', 'knobvalue', this.status.vol);
+            this.ui.setValue({elementID: 'Volume', value: this.status.vol});
 
             if ((temp_parm = this.parseFloatParam ('env')) !== false) {
                 this.status.env = temp_parm;
                 this.saveStatePartial ("MS.Envelope",this.status.env);
             }
-            this.ui.setValue('Envelope', 'knobvalue', this.status.env);
+            this.ui.setValue({elementID: 'Envelope', value: this.status.env});
 
             if ((temp_parm = this.parseFloatParam ('rev')) !== false) {
                 this.status.rev = temp_parm;
                 this.saveStatePartial ("MS.rev",this.status.rev);
             }
-            this.ui.setValue('Reverb', 'knobvalue', this.status.rev);
+            this.ui.setValue({elementID: 'Reverb', value: this.status.rev});
 
             if ((temp_parm = this.parseFloatParam ('dist')) !== false) {
                 this.status.dist = temp_parm;
                 this.saveStatePartial ("MS.dist",this.status.dist);
             }
-            this.ui.setValue('Distortion', 'knobvalue', this.status.dist);
+            this.ui.setValue({elementID: 'Distortion', value: this.status.dist});
 
-            this.ui.setValue('PlayButton', 'buttonvalue', 0);
-            this.ui.setValue('switch', 'buttonvalue', this.status.numberOfPatterns - 1);
-            this.ui.setValue('greenled_0', 'buttonvalue', 1);
-            this.ui.setValue('redled_0', 'buttonvalue', 1);
-            this.ui.setValue('Velocity', 'knobvalue', this.status.steps[0].velocity);
+            this.ui.setValue({elementID: 'PlayButton', value: 0});
+            this.ui.setValue({elementID: 'switch', value: this.status.numberOfPatterns - 1});
+            this.ui.setValue({elementID: 'greenled_0', value: 1});
+            this.ui.setValue({elementID: 'redled_0', value: 1});
+            this.ui.setValue({elementID: 'Velocity', value: this.status.steps[0].velocity});
             // Set the initial step (0)
-            this.ui.setValue('0', 'buttonvalue', this.status.steps[0].active);
+            this.ui.setValue({elementID: '0', value: this.status.steps[0].active});
             // set the initial piano roll
             if (this.status.steps[0].note >= 0) {
-                this.ui.setValue(this.status.steps[0].note + "_pr", 'buttonvalue', 1);
+                this.ui.setValue({elementID: (this.status.steps[0].note + "_pr"), value: 1});
             }
 
 if (this.audioOk === true) {
-                this.ui.setValue("statusLabel", 'labelvalue', "Morning star synth");
+                this.ui.setValue({elementID: "statusLabel", value: "Morning star synth"});
             }
             else {
-                this.ui.setValue("statusLabel", 'labelvalue', "Audio not OK");
+                this.ui.setValue({elementID: "statusLabel", value: "Audio not OK"});
             }
 
             // We still need to display the first pattern, in case we restored
