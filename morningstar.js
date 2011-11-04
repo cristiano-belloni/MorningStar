@@ -795,6 +795,8 @@ var MORNINGSTAR = {
             bpArgs.ID = "PlayButton";
             bpArgs.left = 260 - 43;
             bpArgs.imagesArray = loaders["play_loader"].images;
+            // Elements without callback won't refresh themselves.
+            bpArgs.onValueSet = function () {this.ui.refresh()}.bind(MORNINGSTAR);
             this.bpButtons['play'] = new Button(bpArgs);
             bpArgs.ID = "StopButton";
             bpArgs.left = 179 - 43;
