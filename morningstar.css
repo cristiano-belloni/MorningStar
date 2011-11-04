@@ -52,3 +52,24 @@
         margin-top: -285px; /* -(1/2 height) */
         margin-left: -460px; /* -(1/2 width) */
   }
+  
+  #div-message {
+      position: absolute;
+      margin-top: -18px; /* -(1/2 height) */
+      margin-left: -460px; /* -(1/2 width) */
+      top: 50%;
+      left: 50%;
+      width:920px;
+      height: 36px;
+      line-height: 36px;
+        
+      background: #220000;
+      color: #ffffff;
+      font: 0.8em "Droid Sans Mono", monospace;
+      
+      -moz-border-radius: 0.3em;
+      -webkit-border-radius: 0.3em;
+      border-radius: 0.3em;
+      text-align: center;
+      opacity:0.8;
+    }

@@ -32,6 +32,7 @@ var MORNINGSTAR = {
             currentStep : 0,
             currentHLStep : 0,
             audioOk : false,
+            errState : false,
             currentPlayPattern: 0
         };
 
@@ -57,10 +58,6 @@ var MORNINGSTAR = {
             }
             return query_string;
         } ();
-
-        MORNINGSTAR.logError = function (status) {
-            console.log(status);
-        }
 
         MORNINGSTAR.supportsLocalStorage = function() {
             try {
@@ -169,6 +166,27 @@ var MORNINGSTAR = {
         }
 
         // CALLBACKS
+        
+        // SPLASHSCREEN CALLBACKS
+        MORNINGSTAR.imageLoaded = function (loaderStatus) {
+            if (this.errState !== true) {
+                var ls = loaderStatus;
+                this.message.innerHTML =  ls.status.id  + " loaded image " + ls.status.loaded + " of " + ls.status.total;
+            }
+        }
+
+        MORNINGSTAR.imageError = function (loaderStatus) {
+            var ls = loaderStatus;
+            this.errState = true;
+            this.message.innerHTML =  ls.status.id  + ": ERROR loading images " /* + ls.obj.src */;
+        }
+
+        MORNINGSTAR.singleLoaded = function (loaderStatus) {
+            /*if (this.errState !== true) {
+                var ls = loaderStatus;
+                this.message.innerHTML = ls.status.id + " loaded...";
+            }*/
+        }
 
         // PLAY / STOP BUTTON
         MORNINGSTAR.uiPlayStartStop = function (state) {
@@ -691,6 +709,8 @@ var MORNINGSTAR = {
         }
 
         MORNINGSTAR.afterLoading = function (loaders) {
+            
+            this.message.innerHTML = "Resources loaded, initializing...";
 
             var key_initial_offset = 67 - 43,
                 key_distance = 55;
@@ -1027,6 +1047,7 @@ var MORNINGSTAR = {
             
             // AUDIO INIT
 
+            this.message.innerHTML = "Initializing audio...";
             this.audioOk = true;
 
             this.is_chrome = navigator.userAgent.toLowerCase().indexOf('chrome') > -1;
@@ -1044,7 +1065,8 @@ var MORNINGSTAR = {
                     this.WAAMS.setConvoBuffer (this.request.response);
                     this.afterAudio();
                 }
-
+                
+                this.message.innerHTML = "Loading impulse response waveform...";
                 this.request.onload = convoOnload.bind(MORNINGSTAR);
                 this.request.send();
 
@@ -1080,9 +1102,11 @@ var MORNINGSTAR = {
 
             if (this.audioOK === true) {
                 this.ui.setValue({elementID: 'onoff', value: 0});
+                this.message.innerHTML = "Audio is OK";
             }
             else {
                 this.ui.setValue({elementID:'onoff', value: 1});
+                this.message.innerHTML = "Audio not available, starting interface in mute mode";
             }
 
 
@@ -1234,22 +1258,27 @@ if (this.audioOk === true) {
             // the saved state.
             this.switchPattern (0, true);
             
+            this.message.innerHTML = "Done.";
+            // Add the shadow to the canvas at the end, otherwise it will show
+            // up even if the canvas is hidden.
+            // http://stackoverflow.com/questions/195951/change-an-elements-css-class-with-javascript
+            this.plugin_canvas.className += " shadow";
+            
             this.ui.refresh();
         }
 
         MORNINGSTAR.init = function () {
             /* INIT */
-            var plugin_canvas = document.getElementById("plugin");
+            this.plugin_canvas = document.getElementById("plugin");
             var CWrapper = K2WRAPPER.createWrapper("CANVAS_WRAPPER",
-                                                        {canvas: plugin_canvas}
+                                                        {canvas: this.plugin_canvas}
                                                         );
 
-            this.ui = new UI (plugin_canvas, CWrapper, {breakOnFirstEvent: true});
+            this.ui = new UI (this.plugin_canvas, CWrapper, {breakOnFirstEvent: true});
 
             var imageResources = [];
             var mulArgs = {multipleImages: [],
-                            onComplete: this.afterLoading.bind(MORNINGSTAR),
-                            onError: this.logError.bind(MORNINGSTAR)
+                            onComplete: this.afterLoading.bind(MORNINGSTAR)
             }
 
             // Build the status array.
@@ -1258,6 +1287,10 @@ if (this.audioOk === true) {
                 // No state? Fall back to default parameters.
                 this.restoreDefaultState();
             }
+            
+            // Get the splash screen
+            this.message = document.getElementById("message");
+            this.message.innerHTML = "Loading resources...";
 
             // Load keys
 
@@ -1319,6 +1352,10 @@ if (this.audioOk === true) {
 
             // Load bg
             mulArgs.multipleImages.push ({ID: "background_loader", imageNames : ["MS_deck.png"]});
+            
+            mulArgs.onError =  this.imageError.bind(MORNINGSTAR);
+            mulArgs.onSingle = this.imageLoaded.bind(MORNINGSTAR);
+            mulArgs.onSingleArray = this.singleLoaded.bind(MORNINGSTAR);
 
             var mImageLoader = new loadMultipleImages (mulArgs);
 
