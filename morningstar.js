@@ -171,7 +171,7 @@ var MORNINGSTAR = {
         MORNINGSTAR.imageLoaded = function (loaderStatus) {
             if (this.errState !== true) {
                 var ls = loaderStatus;
-                this.message.innerHTML =  ls.status.id  + " loaded image " + ls.status.loaded + " of " + ls.status.total;
+                this.message.innerHTML =  " Resource " + ls.status.id  + " loaded image " + ls.status.loaded + " of " + ls.status.total;
             }
         }
 
@@ -707,8 +707,10 @@ var MORNINGSTAR = {
             var string = this.exportParameters();
             console.log ("Export string: " + string);
             
-            this.message.innerHTML = "Parameters exported to clipboard";
-            this.d_message.style.zIndex = 100;
+            window.prompt ("URL for your exported song:", document.URL + string);
+            
+            //this.message.innerHTML = "Parameters exported to clipboard";
+            //this.d_message.style.zIndex = 100;
             
         }
 
