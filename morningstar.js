@@ -695,22 +695,51 @@ var MORNINGSTAR = {
             this.ui.refresh();
         };
 
+        MORNINGSTAR.buttonTimeout = function (ID, val) {
+            console.log ("Clear callback called with ID " +  ID + "value "+ val);
+            // Set the button back to 0
+                this.ui.setValue ({elementID: ID, value: val});
+        }
         MORNINGSTAR.clearCallback = function(slot, value, ID) {
-            console.log ("Clear callback called");
-            this.restoreDefaultState();
-            this.saveState();
-            this.switchPattern (0, true);
-            this.ui.refresh();
+            console.log ("Clear callback called with value " +  value);
+            if (value === 1) {
+                this.restoreDefaultState();
+                this.saveState();
+                this.switchPattern (0, true);
+                this.ui.setValue({elementID: "statusLabel", value: "Song Cleared"});
+                this.ui.refresh();
+                // Set the button to unclickable
+                this.ui.setClickable(ID, false);
+                // Set the button back to 0 in a few milliseconds. God bless bind()
+                setTimeout ( this.buttonTimeout.bind(MORNINGSTAR, ID, 0), 150 );
+            }
+            else {
+                this.ui.setClickable(ID, true);
+                this.ui.refresh();
+            }
         }
         
         MORNINGSTAR.exportCallback = function (slot, value, ID) {
-            var string = this.exportParameters();
-            console.log ("Export string: " + string);
-            
-            window.prompt ("URL for your exported song:", document.URL + string);
-            
-            //this.message.innerHTML = "Parameters exported to clipboard";
-            //this.d_message.style.zIndex = 100;
+            if (value === 1) {
+                var string = this.exportParameters();
+                console.log ("Export string: " + string);
+
+                window.prompt ("URL for your exported song:", document.URL + string);
+
+                //this.message.innerHTML = "Parameters exported to clipboard";
+                //this.d_message.style.zIndex = 100;
+
+                this.ui.setValue({elementID: "statusLabel", value: "Song URL Exported"});
+                this.ui.refresh();
+                // Set the button to unclickable
+                this.ui.setClickable(ID, false);
+                // Set the button back to 0 in a few milliseconds.
+                setTimeout ( this.buttonTimeout.bind(MORNINGSTAR, ID, 0), 150 );
+            }
+            else {
+                this.ui.setClickable(ID, true);
+                this.ui.refresh();
+            }
             
         }
 
@@ -956,10 +985,10 @@ var MORNINGSTAR = {
 
             // CLEAR PATTERN BUTTON (TODO GRAPHICS)
             var clearArgs = {
-                top: 6,
-                left: 125,
+                top: 8,
+                left: 786,
                 ID: "clear",
-                imagesArray : loaders["greenled_loader"].images,
+                imagesArray : loaders["littlebutton_loader"].images,
                 onValueSet : this.clearCallback.bind(MORNINGSTAR)
             };
 
@@ -968,10 +997,10 @@ var MORNINGSTAR = {
             
             // EXPORT SONG BUTTON (TODO GRAPHICS)
             var exportArgs = {
-                top: 6,
-                left: 155,
+                top: 8,
+                left: 888,
                 ID: "export",
-                imagesArray : loaders["redled_loader"].images,
+                imagesArray : loaders["littlebutton_loader"].images,
                 onValueSet : this.exportCallback.bind(MORNINGSTAR)
             };
 
@@ -1349,6 +1378,9 @@ if (this.audioOk === true) {
             // Led buttons
             mulArgs.multipleImages.push ({ID: "redled_loader", imageNames : ["Led/LedRed_off.png", "Led/LedRed_on.png"]});
             mulArgs.multipleImages.push ({ID: "greenled_loader", imageNames : ["Led/LedGreen_off.png", "Led/LedGreen_on.png"]});
+
+            // Little buttons
+            mulArgs.multipleImages.push ({ID: "littlebutton_loader", imageNames : ["LittleButtons/button_off.png", "LittleButtons/button_on.png"]});
 
             // Audio on / off
             mulArgs.multipleImages.push ({ID: "onoff_loader", imageNames : ["Audioonoff/off.png", "Audioonoff/on.png"]});
