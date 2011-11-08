@@ -252,6 +252,10 @@ var MORNINGSTAR = {
                     this.ui.setValue({elementID: "greenled_" + (nextStep / this.STEPS_PER_PATTERN), value: 1});
                     // Turn the previous green led off
                     this.ui.setValue({elementID: "greenled_" + this.currentPlayPattern, value: 0});
+                    //Same for the red led
+                    this.ui.setValue({elementID: "redled_" + (nextStep / this.STEPS_PER_PATTERN), value: 1});
+                    // Turn the previous red led off
+                    this.ui.setValue({elementID: "redled_" + this.currentPlayPattern, value: 0});
                 }
                 // Update the current play pattern
                 this.currentPlayPattern = nextStep / this.STEPS_PER_PATTERN;
