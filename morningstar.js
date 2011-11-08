@@ -33,7 +33,8 @@ var MORNINGSTAR = {
             currentHLStep : 0,
             audioOk : false,
             errState : false,
-            currentPlayPattern: 0
+            currentPlayPattern: 0,
+            restartLoop : true
         };
 
         MORNINGSTAR.QueryString = function () {
@@ -222,14 +223,21 @@ var MORNINGSTAR = {
 
         MORNINGSTAR.sequencerRoutine = function () {
 
-            var changePattern = false;
+            console.log ("*** sequenceStep + 1 (" + (this.sequenceStep + 1) + ") === this.status.numberOfPatterns (" + this.status.numberOfPatterns +") * " + this.STEPS_PER_PATTERN );
+
+            // Stop if loop mode is not set
+            if (this.restartLoop === false && ((this.sequenceStep + 1) === (this.status.numberOfPatterns * this.STEPS_PER_PATTERN))) {
+                console.log ("Stopping the show");
+                this.ui.setValue({elementID: "StopButton", value: 1});
+                return;
+            }
+
             var nextStep = (this.sequenceStep + 1) % (this.STEPS_PER_PATTERN * this.status.numberOfPatterns);
             // Graphical step, the actual key to light.
             var nextGrStep = nextStep % this.STEPS_PER_PATTERN;
 
             if ((nextGrStep === 0) /*&& (nextGrStep !== nextStep)*/) {
                 //Time to change pattern
-                changePattern = true;
                 //Last play key becomes invisible
                 this.ui.setVisible(this.playKeys[this.STEPS_PER_PATTERN - 1].ID, false);
                 //Last I/O key becomes visible
@@ -329,9 +337,11 @@ var MORNINGSTAR = {
 
             if (value === 1) {
                 console.log ("Restart is ON");
+                this.restartLoop = true;
             }
             else if (value === 0) {
                 console.log ("Restart is OFF");
+                this.restartLoop = false;
             }
             else {
                 // throw
@@ -1267,6 +1277,7 @@ var MORNINGSTAR = {
             this.ui.setValue({elementID: 'Distortion', value: this.status.dist});
 
             this.ui.setValue({elementID: 'PlayButton', value: 0});
+            this.ui.setValue({elementID: 'RestartButton', value: 1});
             this.ui.setValue({elementID: 'switch', value: this.status.numberOfPatterns - 1});
             this.ui.setValue({elementID: 'greenled_0', value: 1});
             this.ui.setValue({elementID: 'redled_0', value: 1});
