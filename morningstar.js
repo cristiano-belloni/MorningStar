@@ -1048,13 +1048,25 @@ var MORNINGSTAR = {
                 isClickable: false
             };
 
-            //
             onoffArgs.imagesArray = loaders["onoff_loader"].images;
-                onoffArgs.top = 6;
-                onoffArgs.left = 65;
-                onoffArgs.ID = "onoff";
-                this.onoff = new Button(onoffArgs);
-                this.ui.addElement(this.onoff,  {zIndex: 10});
+            onoffArgs.top = 6;
+            onoffArgs.left = 65;
+            onoffArgs.ID = "onoff";
+            this.onoff = new Button(onoffArgs);
+            this.ui.addElement(this.onoff,  {zIndex: 10});
+
+            // AUDIO SUBSYSTEM BUTTON
+            var subsArgs = {
+                isClickable: false,
+                isVisible: false
+            };
+
+            subsArgs.imagesArray = loaders["subsys_loader"].images;
+            subsArgs.top = 6;
+            subsArgs.left = 92;
+            subsArgs.ID = "subsys";
+            this.subsys = new Button(subsArgs);
+            this.ui.addElement(this.subsys,  {zIndex: 10});
 
             // PIANO ROLL
 
@@ -1116,6 +1128,10 @@ var MORNINGSTAR = {
                 this.WAAMS = new WAAMorningStar();
                 this.audioManager = this.WAAMS;
 
+                // Display the audio subsystem button
+                this.ui.setVisible("subsys", true);
+                this.ui.setValue ({elementID: "subsys", value: 1});
+
                 this.request = new XMLHttpRequest();
                 this.request.open("GET", "impulse-responses/matrix-reverb1.wav", true);
                 this.request.responseType = "arraybuffer";
@@ -1143,6 +1159,11 @@ var MORNINGSTAR = {
                     console.log ("Catched an exception trying to load Mozilla Audio API: ", err, " Audio could be not loaded: ", err.description);
                     this.audioOk = false;
                 }
+                
+                // Display the audio subsystem button
+                this.ui.setVisible("subsys", true);
+                this.ui.setValue ({elementID: "subsys", value: 0});
+                
                 this.afterAudio();
             }
         }
@@ -1168,8 +1189,7 @@ var MORNINGSTAR = {
                 this.ui.setValue({elementID:'onoff', value: 1});
                 this.message.innerHTML = "Audio not available, starting interface in mute mode";
             }
-
-
+            
             var temp_parm;
 
             // DEFAULTS AND PARAMETERS
@@ -1420,6 +1440,9 @@ if (this.audioOk === true) {
 
             // Audio on / off
             mulArgs.multipleImages.push ({ID: "onoff_loader", imageNames : ["Audioonoff/off.png", "Audioonoff/on.png"]});
+            
+            // Audio subsystem tags
+            mulArgs.multipleImages.push ({ID: "subsys_loader", imageNames : ["AudioSys/mozAudio.png", "AudioSys/webAudio.png"]});
 
             // Load bg
             mulArgs.multipleImages.push ({ID: "background_loader", imageNames : ["MS_deck.png"]});
