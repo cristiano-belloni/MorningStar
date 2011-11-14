@@ -86,7 +86,7 @@ if (len == 2) len = data[0].length;
             }
             
             // Velocity control does nothing, had to use it as a gain here.
-            var curr_sample = this.sample * (this.volume / 127) * (this.vel /127) ;
+            var curr_sample = this.sample * (this.volume / 127) * (this.vel / 127) ;
             
             // Upmix to stereo if given two channels (array of arrays)
             if (data.length === 2) {

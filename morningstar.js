@@ -676,7 +676,10 @@ var MORNINGSTAR = {
                 this.ui.setValue({elementID: "statusLabel", value: "BPM: " + this.tempo_value});
             }
             else if (ID === "Reverb") {
-                this.audioManager.setReverb(value);
+
+                if (this.audioOk === true) {
+                    this.audioManager.setReverb(value);
+                }
 
                 // Save the uninterpolated value in the status object
                 this.status.rev = value;
@@ -687,8 +690,11 @@ var MORNINGSTAR = {
                 this.ui.setValue({elementID: "statusLabel", value: "Reverb: " + Math.round(value * 127)});
             }
             else if (ID === "Distortion") {
-                // Tell audio manager we want to change distortion
-                this.audioManager.setDistortion(value);
+
+                if (this.audioOk === true) {
+                    // Tell audio manager we want to change distortion
+                    this.audioManager.setDistortion(value);
+                }
 
                 // Save the uninterpolated value in the status object
                 this.status.dist = value;
@@ -706,7 +712,7 @@ var MORNINGSTAR = {
                     this.ui.setValue({elementID: "statusLabel", value: "Dist: " + Math.round(value * 127)});
                 }
             }
-            else if (ID == "Velocity") {
+            else if (ID === "Velocity") {
                 // Save the velocity for the highlighted step
                 this.status.steps[this.currentStep].velocity = value;
 
@@ -716,9 +722,12 @@ var MORNINGSTAR = {
                 // Display the interpolated value on the label
                 this.ui.setValue({elementID: "statusLabel", value: "Vel: " + Math.round(value * 127)});
             }
-            else if (ID == "Volume") {
-                // Tell audio manager we want to change volume
-                WAAMorningStar.prototype.setVolume(Math.round(value * 127));
+            else if (ID === "Volume") {
+
+                if (this.audioOk === true) {
+                    // Tell audio manager we want to change volume
+                    this.audioManager.setVolume(Math.round(value * 127));
+                }
 
                 // Save the uninterpolated value in the status object
                 this.status.vol = value;
@@ -1183,7 +1192,7 @@ var MORNINGSTAR = {
                 }
             }
 
-            if (this.audioOK === true) {
+            if (this.audioOk === true) {
                 this.ui.setValue({elementID: 'onoff', value: 0});
                 this.message.innerHTML = "Audio is OK";
             }
