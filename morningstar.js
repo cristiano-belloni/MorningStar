@@ -620,10 +620,11 @@ var MORNINGSTAR = {
         }
 
         MORNINGSTAR.instrKnobCallback = function (slot, value, ID) {
-             if (this.audioOk === true) {
-                 
-                // Interpolate the instrKnobs value in the integer range [0,127]
-                var interpolated_value = Math.round(value * 127);
+
+            // Interpolate the instrKnobs value in the integer range [0,127]
+            var interpolated_value = Math.round(value * 127);
+
+            if (this.audioOk === true) {
                 
                 // Call the corresponding function in the audio manager
                 var functionName = "set" + ID;
