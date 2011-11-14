@@ -1159,10 +1159,12 @@ var MORNINGSTAR = {
                     console.log ("Catched an exception trying to load Mozilla Audio API: ", err, " Audio could be not loaded: ", err.description);
                     this.audioOk = false;
                 }
-                
-                // Display the audio subsystem button
-                this.ui.setVisible("subsys", true);
-                this.ui.setValue ({elementID: "subsys", value: 0});
+
+                if (this.audioOk === true) {
+                    // Display the audio subsystem button
+                    this.ui.setVisible("subsys", true);
+                    this.ui.setValue ({elementID: "subsys", value: 0});
+                }
                 
                 this.afterAudio();
             }
