@@ -310,30 +310,55 @@ var MORNINGSTAR = {
             clearInterval(this.sequencerTimer);
         }
 
-        MORNINGSTAR.bpCallback = function (slot, value, elName)  {
-
+        MORNINGSTAR.stCallback = function (slot, value, elName)  {
             if (value === 1) {
-                // Stop the timer
-                this.sequencerTimerStop.call(this);
-
-                // Pepare UI for i/o mode
-                console.log ("Stopping the sequencer");
-                this.uiPlayStartStop.call(this, true);
-            }
-            else if (value === 0) {
                 // Pepare UI for play mode
                 console.log ("Starting the sequencer");
                 this.uiPlayStartStop.call(this, false);
 
                 // Start the timer
+                console.log ("Starting the timer");
                 this.sequencerTimerStart.call(this);
+
+                // Set stop  button value as 0. Don't refresh: invoking the bpCallback will do that.
+                this.ui.setValue({elementID: "StopButton", value: 0});
+                // Set stop button as clickable
+                this.ui.setClickable("StopButton", true);
+                
+            }
+            else if (value === 0) {
+                // Set stop value as 1. Don't refresh: invoking the bpCallback will do that.
+                this.ui.setValue({elementID: "StopButton", value: 1});
+            }
+            else {
+                throw ("Shouldn't be here!!");
+            }
+
+        }
+
+        MORNINGSTAR.bpCallback = function (slot, value, elName)  {
+
+            if (value === 1) {
+                // Stop the timer
+                console.log ("Stopping the timer");
+                this.sequencerTimerStop.call(this);
+
+                // Pepare UI for i/o mode
+                console.log ("Stopping the sequencer");
+                this.uiPlayStartStop.call(this, true);
+                // Set stop  button as unclickable
+                this.ui.setClickable("StopButton", false);
+                // Finally, set play button as 0, without calling back to avoid infinite loops.
+                this.ui.setValue({elementID: "PlayButton", value: 0, fireCallback: false});
+            }
+            else if (value === 0) {
+                console.log ("Value 0, do nothing");
             }
             else {
                 // throw
-                console.log ("Shouldn't be here!!");
+                throw ("Shouldn't be here!!");
             }
             this.ui.refresh();
-
         }
 
         // RESTART BUTTON
@@ -862,7 +887,8 @@ var MORNINGSTAR = {
             bpArgs.left = 260 - 43;
             bpArgs.imagesArray = loaders["play_loader"].images;
             // Elements without callback won't refresh themselves.
-            bpArgs.onValueSet = function () {this.ui.refresh()}.bind(MORNINGSTAR);
+            // bpArgs.onValueSet = function () {this.ui.refresh()}.bind(MORNINGSTAR);
+            bpArgs.onValueSet = this.stCallback.bind(MORNINGSTAR);
             this.bpButtons['play'] = new Button(bpArgs);
             bpArgs.ID = "StopButton";
             bpArgs.left = 179 - 43;
@@ -878,11 +904,6 @@ var MORNINGSTAR = {
             this.ui.addElement(this.bpButtons['play'], {zIndex: 3});
             this.ui.addElement(this.bpButtons['stop'], {zIndex: 3});
             this.ui.addElement(this.bpButtons['restart'], {zIndex: 3});
-
-            // Cascading here; since the buttons are mutually excusive, we will
-            // need only a callback function.
-            this.ui.connectSlots ("PlayButton", "buttonvalue", "StopButton", "buttonvalue", {callback: function (value) {return 1-value;}});
-            this.ui.connectSlots ("StopButton", "buttonvalue", "PlayButton", "buttonvalue", {callback: function (value) {return 1-value;}});
 
             /* KNOBS */
 
