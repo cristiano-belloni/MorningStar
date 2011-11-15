@@ -209,6 +209,15 @@ var MORNINGSTAR = {
                 this.pianoRollKeys[i].setClickable (state);
             }
 
+            // Plus / minus buttons
+            this.ui.setClickable("minus_button", state);
+            this.ui.setClickable("plus_button", state);
+
+            // Velocity. Note that velocity does its thing when in play mode
+            // (change the highlighted button's velocity correctly), but it can
+            // generate confusion when the play pattern visualization changes.
+            this.ui.setClickable("Velocity", state);
+
             if ((state === true) && (this.sequenceStep !== -1)) {
                 // Set the last play key as invisible
                 this.ui.setVisible(this.playKeys[this.sequenceStep % this.STEPS_PER_PATTERN].ID, false);
