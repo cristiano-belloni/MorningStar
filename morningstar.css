@@ -2,18 +2,11 @@
     Document   : morningstar
     Created on : 27-set-2011, 23.50.06
     Author     : janesconference
-    Description:
-        Purpose of the stylesheet follows.
-*/
-
-/* 
-   TODO customize this sample style
-   Syntax recommendation http://www.w3.org/TR/REC-CSS2/
 */
 
 @font-face {
         font-family: "embedded_font";
-        src: url(EHSMB.TTF);
+        src: url(EHSMB.TTF) format('truetype');
     }
     .embed {
         font-family: "embedded_font";

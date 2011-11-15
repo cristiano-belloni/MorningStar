@@ -64,7 +64,8 @@ WAAMorningStar.prototype.init = function (audioParameters) {
     this.sigmaDistortNode.connect(this.convolver);
 
     this.source.connect(this.sigmaDistortNode);
-    
+
+    // Mmmmh this gain note is not used at the moment. TODO.
     this.gainNode = this.context.createGainNode();
     this.convolver.connect(this.gainNode);
 

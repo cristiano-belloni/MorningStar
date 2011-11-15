@@ -624,7 +624,7 @@ var MORNINGSTAR = {
             // Interpolate the instrKnobs value in the integer range [0,127]
             var interpolated_value = Math.round(value * 127);
 
-            if (this.audioOk === true) {
+             if (this.audioOk === true) {
                 
                 // Call the corresponding function in the audio manager
                 var functionName = "set" + ID;
@@ -1278,7 +1278,10 @@ var MORNINGSTAR = {
                     }
                 }
             }
-            
+
+            this.ui.setValue({elementID: "statusLabel", value: "Loading status"});
+            this.ui.refresh();
+
             // DO THE PARSING AND CHANGE THE STATUS, IF NEEDED.
             this.parseNoteParameters();
             this.parseActiveParameters();
@@ -1362,6 +1365,8 @@ if (this.audioOk === true) {
             // up even if the canvas is hidden.
             // http://stackoverflow.com/questions/195951/change-an-elements-css-class-with-javascript
             this.plugin_canvas.className += " shadow";
+
+            this.d_message.parentNode.removeChild(this.d_message);
             
             this.ui.refresh();
         }
