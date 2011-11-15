@@ -1194,11 +1194,11 @@ var MORNINGSTAR = {
             }
 
             if (this.audioOk === true) {
-                this.ui.setValue({elementID: 'onoff', value: 0});
+                this.ui.setValue({elementID: 'onoff', value: 1});
                 this.message.innerHTML = "Audio is OK";
             }
             else {
-                this.ui.setValue({elementID:'onoff', value: 1});
+                this.ui.setValue({elementID:'onoff', value: 0});
                 this.message.innerHTML = "Audio not available, starting interface in mute mode";
             }
             
