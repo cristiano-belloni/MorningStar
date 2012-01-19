@@ -600,7 +600,7 @@ var MORNINGSTAR = {
 
             // Current step is changed to where the highlight was
             var newStep = this.STEPS_PER_PATTERN * this.status.currentEditPattern + this.currentHLStep;
-            console.log("Switching currentStep to", this.currentStep);
+            console.log("Switching currentStep to", this.newStep);
             // Trigger a new note in the piano, if needed
             this.pianoKeyChange (newStep, force);
 
@@ -618,7 +618,7 @@ var MORNINGSTAR = {
                 this.ui.setValue({elementID: "redled_" + this.status.currentEditPattern, value: 0});
                 this.status.currentEditPattern = this.status.numberOfPatterns - 1;
                 this.ui.setValue({elementID: "redled_" + this.status.currentEditPattern, value: 1});
-                this.switchPattern(this.status.currentEditPattern);
+                this.switchPattern(this.status.currentEditPattern, true);
             }
 
             this.ui.setValue({elementID: "statusLabel", value: "N. of patterns: " + this.status.numberOfPatterns});
@@ -826,7 +826,6 @@ var MORNINGSTAR = {
                 }
             });
             this.ui.addElement(this.label, {zIndex: 3});
-            this.ui.setValue({elementID: "statusLabel", value: "Loading..."});
 
             /* BACKGROUND */
 
@@ -1288,7 +1287,6 @@ var MORNINGSTAR = {
                 }
             }
 
-            this.ui.setValue({elementID: "statusLabel", value: "Loading status"});
             this.ui.refresh();
 
             // DO THE PARSING AND CHANGE THE STATUS, IF NEEDED.
@@ -1357,14 +1355,7 @@ var MORNINGSTAR = {
             if (this.status.steps[0].note >= 0) {
                 this.ui.setValue({elementID: (this.status.steps[0].note + "_pr"), value: 1, fireCallback: false});
             }
-
-if (this.audioOk === true) {
-                this.ui.setValue({elementID: "statusLabel", value: "Morning star synth"});
-            }
-            else {
-                this.ui.setValue({elementID: "statusLabel", value: "Audio not OK"});
-            }
-
+            
             // We still need to display the first pattern, in case we restored
             // the saved state.
             this.switchPattern (0, true);
@@ -1374,6 +1365,8 @@ if (this.audioOk === true) {
             // up even if the canvas is hidden.
             // http://stackoverflow.com/questions/195951/change-an-elements-css-class-with-javascript
             this.plugin_canvas.className += " shadow";
+
+            this.ui.setValue({elementID: "statusLabel", value: ""});
 
             this.d_message.parentNode.removeChild(this.d_message);
             

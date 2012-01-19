@@ -66,3 +66,37 @@
       text-align: center;
       opacity:0.8;
     }
+    
+    #info-message {
+      position: absolute;
+      margin-top: -18px; /* -(1/2 height) */
+      margin-left: -460px; /* -(1/2 width) */
+      top: 10%;
+      left: 50%;
+      width:920px;
+      height: 36px;
+      line-height: 36px;
+        
+      border: 2px dashed #d20000;
+      
+      background: #FFFFFF;
+      color: #000000;
+      font: 0.8em "Droid Sans Mono", monospace;
+      font-weight:bold;
+      
+      -moz-border-radius: 0.3em;
+      -webkit-border-radius: 0.3em;
+      border-radius: 0.3em;
+      text-align: center;
+      opacity:0.95;
+    }
+    
+    #info-message a {
+        color: #d20000;
+        text-decoration: none;
+        border-bottom: 1px;
+    }
+    
+    #info-message a:hover {
+        border-bottom: 1px solid #d20000;
+    }
