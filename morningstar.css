@@ -82,7 +82,7 @@
       background: #FFFFFF;
       color: #000000;
       font: 0.8em "Droid Sans Mono", monospace;
-      font-weight:bold;
+      /*font-weight:bold;*/
       
       -moz-border-radius: 0.3em;
       -webkit-border-radius: 0.3em;

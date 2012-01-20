@@ -4,6 +4,7 @@
     <link  href="http://fonts.googleapis.com/css?family=Droid+Sans+Mono:regular" rel="stylesheet" type="text/css" >
     <link rel=StyleSheet href="morningstar.css" type="text/css" media=screen>
     <title>Morning Star Synth</title>
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <script type="text/javascript" src="http://github.com/notmasteryet/audiodata/raw/master/audiodata.js"></script>
     <script type="text/javascript" src="https://raw.github.com/corbanbrook/dsp.js/master/dsp.js"></script>
@@ -28,7 +29,7 @@
     </div>
       
     <div ID="info-message">
-        <p>Morning Start Synth. Made with <a href="http://kievii.net">KievII</a>. Info / docs <a href="http://blog-placeholder">here</a>. Follow the author on <a href="https://twitter.com/#!/janesconference">Twitter</a>.</p>
+        <p>Morning Start Synth. Made with <a href="http://kievii.net" target="_blank">KievII</a>. Info / docs <a href="http://blog-placeholder" target="_blank">here</a>. Follow the author on <a href="https://twitter.com/#!/janesconference" target="_blank">Twitter</a>.</p>
     </div>
       
 <!--    <div ID="center_div" class="shadow">-->
@@ -39,7 +40,9 @@
     <script type="text/javascript">
 
         // This should fix "console not defined" problem.
-        if (typeof console=="undefined"){console={log:function(A){var B=false;if(B){alert(A)}}}}
+        if(typeof console === "undefined") {
+            console = { log: function() { } };
+        }
   
         // Function.prototype.bind polyfill
   	if ( !Function.prototype.bind ) {
