@@ -780,9 +780,10 @@ var MORNINGSTAR = {
         MORNINGSTAR.exportCallback = function (slot, value, ID) {
             if (value === 1) {
                 var string = this.exportParameters();
+                var documentPath = window.location.host + window.location.pathname;
                 console.log ("Export string: " + string);
 
-                window.prompt ("URL for your exported song:", document.URL + string);
+                window.prompt ("URL for your exported song:", documentPath + string);
 
                 //this.message.innerHTML = "Parameters exported to clipboard";
                 //this.d_message.style.zIndex = 100;
