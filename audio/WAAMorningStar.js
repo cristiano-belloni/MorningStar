@@ -46,9 +46,8 @@ WAAMorningStar.prototype.init = function (audioParameters) {
     // Start with no distortion. TODO don't like it here.
     this.setDistortion(0);
     this.NonDescriptDSP.init(this.context.sampleRate);
-    
 
-    this.source = this.context.createJavaScriptNode(this.nSamples, 0, 1);
+    this.source = this.context.createJavaScriptNode(this.nSamples);
     this.source.onaudioprocess = this.process;
 
     // Create the convolution buffer from the impulse response
