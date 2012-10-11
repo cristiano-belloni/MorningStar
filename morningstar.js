@@ -196,27 +196,27 @@ var MORNINGSTAR = {
 
             // Keys
             for (var i = 0, len = this.steps_array.length; i < len; i+=1) {
-                this.ui.setClickable(this.keys[i].ID, state);
+                this.ui.setListening(this.keys[i].ID, state);
             }
 
             // Highlights
             for (var i = 0, len = this.steps_array.length; i < len; i+=1) {
-                this.ui.setClickable(this.highlights[i].ID, state);
+                this.ui.setListening(this.highlights[i].ID, state);
             }
 
             // Piano Roll
             for (var i = 0; i < this.pianoRollKeys.length; i+=1) {
-                this.pianoRollKeys[i].setClickable (state);
+                this.pianoRollKeys[i].setListening (state);
             }
 
             // Plus / minus buttons
-            this.ui.setClickable("minus_button", state);
-            this.ui.setClickable("plus_button", state);
+            this.ui.setListening("minus_button", state);
+            this.ui.setListening("plus_button", state);
 
             // Velocity. Note that velocity does its thing when in play mode
             // (change the highlighted button's velocity correctly), but it can
             // generate confusion when the play pattern visualization changes.
-            this.ui.setClickable("Velocity", state);
+            this.ui.setListening("Velocity", state);
 
             if ((state === true) && (this.sequenceStep !== -1)) {
                 // Set the last play key as invisible
@@ -252,7 +252,7 @@ var MORNINGSTAR = {
                 //Last I/O key becomes visible
                 this.ui.setVisible(this.keys[this.STEPS_PER_PATTERN - 1].ID, true);
                 //and unclickable, again
-                this.ui.setClickable(this.keys[this.STEPS_PER_PATTERN - 1].ID, false);
+                this.ui.setListening(this.keys[this.STEPS_PER_PATTERN - 1].ID, false);
                 //Actually change pattern
                 this.switchPattern (nextStep / this.STEPS_PER_PATTERN);
                 //See if we need to refresh the play LED
@@ -292,7 +292,7 @@ var MORNINGSTAR = {
                 //i/o key becomes visible
                 this.ui.setVisible(this.keys[nextGrStep - 1].ID, true);
                 //and unclickable, again
-                this.ui.setClickable(this.keys[nextGrStep - 1].ID, false);
+                this.ui.setListening(this.keys[nextGrStep - 1].ID, false);
             }
 
             //i/o key is invisible
@@ -332,7 +332,7 @@ var MORNINGSTAR = {
                 // Set stop  button value as 0. Don't refresh: invoking the bpCallback will do that.
                 this.ui.setValue({elementID: "StopButton", value: 0});
                 // Set stop button as clickable
-                this.ui.setClickable("StopButton", true);
+                this.ui.setListening("StopButton", true);
                 
             }
             else if (value === 0) {
@@ -356,7 +356,7 @@ var MORNINGSTAR = {
                 console.log ("Stopping the sequencer");
                 this.uiPlayStartStop.call(this, true);
                 // Set stop  button as unclickable
-                this.ui.setClickable("StopButton", false);
+                this.ui.setListening("StopButton", false);
                 // Finally, set play button as 0, without calling back to avoid infinite loops.
                 this.ui.setValue({elementID: "PlayButton", value: 0, fireCallback: false});
             }
@@ -478,7 +478,7 @@ var MORNINGSTAR = {
                 // Set current highlight as invisible
                 this.ui.setVisible(this.currentHLStep + '_hl', false);
                 // setVisible = false makes it unclickable. Make it clickable again.
-                this.ui.setClickable(this.currentHLStep + '_hl', true);
+                this.ui.setListening(this.currentHLStep + '_hl', true);
                 // Set new highlight as visible, and update currentHLStep
                 this.ui.setVisible(newStep + '_hl', true);
                 this.currentHLStep = newStep;               
@@ -767,12 +767,12 @@ var MORNINGSTAR = {
                 this.ui.setValue({elementID: "statusLabel", value: "Song Cleared"});
                 this.ui.refresh();
                 // Set the button to unclickable
-                this.ui.setClickable(ID, false);
+                this.ui.setListening(ID, false);
                 // Set the button back to 0 in a few milliseconds. God bless bind()
                 setTimeout ( this.buttonTimeout.bind(MORNINGSTAR, ID, 0), 150 );
             }
             else {
-                this.ui.setClickable(ID, true);
+                this.ui.setListening(ID, true);
                 this.ui.refresh();
             }
         }
@@ -791,12 +791,12 @@ var MORNINGSTAR = {
                 this.ui.setValue({elementID: "statusLabel", value: "Song URL Exported"});
                 this.ui.refresh();
                 // Set the button to unclickable
-                this.ui.setClickable(ID, false);
+                this.ui.setListening(ID, false);
                 // Set the button back to 0 in a few milliseconds.
                 setTimeout ( this.buttonTimeout.bind(MORNINGSTAR, ID, 0), 150 );
             }
             else {
-                this.ui.setClickable(ID, true);
+                this.ui.setListening(ID, true);
                 this.ui.refresh();
             }
             
@@ -813,7 +813,7 @@ var MORNINGSTAR = {
 
             // Every element calls label's setValue in the callback, so let's make sure
             // that label is declared first.
-            this.label = new Label({
+            this.label = new K2.Label({
                 ID: 'statusLabel',
                 width : 320,
                 height : 29,
@@ -837,7 +837,7 @@ var MORNINGSTAR = {
                 image: loaders["background_loader"].images[0]
                 }
 
-            this.background = new Background (backgroundArgs);
+            this.background = new K2.Background (backgroundArgs);
             this.ui.addElement(this.background, {zIndex: 1});
 
             /* KEYS */
@@ -869,16 +869,16 @@ var MORNINGSTAR = {
                 highlightArgs.ROIHeight = 20;
 
                 // Create the key
-                this.keys[i] = new Button(keyArgs);
+                this.keys[i] = new K2.Button(keyArgs);
                 // Create the highlight
-                this.highlights[i] = new Background(highlightArgs);
+                this.highlights[i] = new K2.Background(highlightArgs);
 
                 // Parameters for the play keys, we hijack the key ones
                 keyArgs.imagesArray = loaders[this.steps_array[i] + "_pl_loader"].images;
                 keyArgs.ID = keyArgs.ID + "_pl";
 
                 // Create the play key
-                this.playKeys[i] = new Button(keyArgs);
+                this.playKeys[i] = new K2.Button(keyArgs);
 
                 // Add the created elements
                 this.ui.addElement(this.keys[i], {zIndex: 5});
@@ -889,7 +889,7 @@ var MORNINGSTAR = {
                 if (i !== this.currentStep) {
                     this.ui.setVisible(highlightArgs.ID, false);
                 }
-                this.ui.setClickable(highlightArgs.ID, true);
+                this.ui.setListening(highlightArgs.ID, true);
 
                 // Play keys are invisible by default. They become visible in
                 // sequencer mode.
@@ -908,17 +908,17 @@ var MORNINGSTAR = {
             // Elements without callback won't refresh themselves.
             // bpArgs.onValueSet = function () {this.ui.refresh()}.bind(MORNINGSTAR);
             bpArgs.onValueSet = this.stCallback.bind(MORNINGSTAR);
-            this.bpButtons['play'] = new Button(bpArgs);
+            this.bpButtons['play'] = new K2.Button(bpArgs);
             bpArgs.ID = "StopButton";
             bpArgs.left = 179 - 43;
             bpArgs.imagesArray = loaders["stop_loader"].images;
             bpArgs.onValueSet = this.bpCallback.bind(MORNINGSTAR);
-            this.bpButtons['stop'] = new Button(bpArgs);
+            this.bpButtons['stop'] = new K2.Button(bpArgs);
             bpArgs.ID = "RestartButton";
             bpArgs.left = 343 - 43;
             bpArgs.imagesArray = loaders["restart_loader"].images;
             bpArgs.onValueSet = this.rsCallback.bind(MORNINGSTAR);
-            this.bpButtons['restart'] = new Button(bpArgs);
+            this.bpButtons['restart'] = new K2.Button(bpArgs);
 
             this.ui.addElement(this.bpButtons['play'], {zIndex: 3});
             this.ui.addElement(this.bpButtons['stop'], {zIndex: 3});
@@ -948,7 +948,7 @@ var MORNINGSTAR = {
                 instrKnobArgs.ID = instr_knob_names[i].ID;
                 instrKnobArgs.top = instr_knob_names[i].top;
                 instrKnobArgs.left = instr_knob_names[i].left;
-                this.instrKnobs[i] = new RotKnob(instrKnobArgs);
+                this.instrKnobs[i] = new K2.RotKnob(instrKnobArgs);
                 this.ui.addElement(this.instrKnobs[i],  {zIndex: 10});
             }
 
@@ -976,7 +976,7 @@ var MORNINGSTAR = {
                 globalKnobArgs.ID = global_knob_names[i].ID;
                 globalKnobArgs.top = global_knob_names[i].top;
                 globalKnobArgs.left = global_knob_names[i].left;
-                this.globalKnobs[i] = new RotKnob(globalKnobArgs);
+                this.globalKnobs[i] = new K2.RotKnob(globalKnobArgs);
                 this.ui.addElement(this.globalKnobs[i],  {zIndex: 10});
             }
 
@@ -989,7 +989,7 @@ var MORNINGSTAR = {
                 onValueSet : this.switchCallback.bind(MORNINGSTAR)
             };
 
-            this.switchButton = new Button(swArgs);
+            this.switchButton = new K2.Button(swArgs);
             this.ui.addElement(this.switchButton,  {zIndex: 10});
 
             // PLUSMINUS
@@ -1001,7 +1001,7 @@ var MORNINGSTAR = {
                 onValueSet : this.minusCallback.bind(MORNINGSTAR)
             };
 
-            this.minusButton = new Button(pmArgs);
+            this.minusButton = new K2.Button(pmArgs);
             this.ui.addElement(this.minusButton,  {zIndex: 10});
 
             pmArgs.ID = "plus_button";
@@ -1009,7 +1009,7 @@ var MORNINGSTAR = {
             pmArgs.imagesArray = loaders["plus_loader"].images;
             pmArgs.onValueSet = this.plusCallback.bind(MORNINGSTAR);
 
-            this.plusButton = new Button(pmArgs);
+            this.plusButton = new K2.Button(pmArgs);
             this.ui.addElement(this.plusButton,  {zIndex: 10});
 
             // LEDS
@@ -1025,19 +1025,19 @@ var MORNINGSTAR = {
                 ledArgs.imagesArray = loaders["redled_loader"].images;
                 ledArgs.top = 189;
                 ledArgs.ID = "redled_" + i;
-                this.redLeds[i] = new Button(ledArgs);
+                this.redLeds[i] = new K2.Button(ledArgs);
                 this.ui.addElement(this.redLeds[i],  {zIndex: 10});
 
                 // Green
                 ledArgs.imagesArray = loaders["greenled_loader"].images;
                 ledArgs.top = 166;
                 ledArgs.ID = "greenled_" + i;
-                this.greenLeds[i] = new Button(ledArgs);
+                this.greenLeds[i] = new K2.Button(ledArgs);
                 this.ui.addElement(this.greenLeds[i],  {zIndex: 10});
 
             }
 
-            // CLEAR PATTERN BUTTON (TODO GRAPHICS)
+            // CLEAR PATTERN BUTTON
             var clearArgs = {
                 top: 8,
                 left: 786,
@@ -1046,10 +1046,10 @@ var MORNINGSTAR = {
                 onValueSet : this.clearCallback.bind(MORNINGSTAR)
             };
 
-            this.clear = new Button (clearArgs);
+            this.clear = new K2.Button (clearArgs);
             this.ui.addElement(this.clear,  {zIndex: 10});
             
-            // EXPORT SONG BUTTON (TODO GRAPHICS)
+            // EXPORT SONG BUTTON
             var exportArgs = {
                 top: 8,
                 left: 888,
@@ -1058,7 +1058,7 @@ var MORNINGSTAR = {
                 onValueSet : this.exportCallback.bind(MORNINGSTAR)
             };
 
-            this.exportButton = new Button (exportArgs);
+            this.exportButton = new K2.Button (exportArgs);
             this.ui.addElement(this.exportButton,  {zIndex: 10});
 
 
@@ -1071,7 +1071,7 @@ var MORNINGSTAR = {
             onoffArgs.top = 6;
             onoffArgs.left = 65;
             onoffArgs.ID = "onoff";
-            this.onoff = new Button(onoffArgs);
+            this.onoff = new K2.Button(onoffArgs);
             this.ui.addElement(this.onoff,  {zIndex: 10});
 
             // AUDIO SUBSYSTEM BUTTON
@@ -1084,7 +1084,7 @@ var MORNINGSTAR = {
             subsArgs.top = 6;
             subsArgs.left = 92;
             subsArgs.ID = "subsys";
-            this.subsys = new Button(subsArgs);
+            this.subsys = new K2.Button(subsArgs);
             this.ui.addElement(this.subsys,  {zIndex: 10});
 
             // PIANO ROLL
@@ -1132,47 +1132,56 @@ var MORNINGSTAR = {
                     pianoZIndex = 12;
                 }
 
-                this.pianoRollKeys.push(new Button(pianoKeyArgs));
+                this.pianoRollKeys.push(new K2.Button(pianoKeyArgs));
                 this.ui.addElement(this.pianoRollKeys[i], {zIndex: pianoZIndex});
             }
             
             // AUDIO INIT
 
             this.message.innerHTML = "Initializing audio...";
-            this.audioOk = true;
-
-            this.is_chrome = navigator.userAgent.toLowerCase().indexOf('chrome') > -1;
+            this.audioOk = false;
+            this.audioType = null;
             
-            if (this.is_chrome) {
-                this.WAAMS = new WAAMorningStar();
-                this.audioManager = this.WAAMS;
-
-                // Display the audio subsystem button
-                this.ui.setVisible("subsys", true);
-                this.ui.setValue ({elementID: "subsys", value: 1});
-
-                this.request = new XMLHttpRequest();
-                this.request.open("GET", "impulse-responses/matrix-reverb1.wav", true);
-                this.request.responseType = "arraybuffer";
-
-                var convoOnload = function() {
-                    console.log ("convoOnload");
-                    this.WAAMS.setConvoBuffer (this.request.response);
-                    this.afterAudio();
+            if (!!(window.webkitAudioContext || window.AudioContext)) {
+                try {
+                    this.WAAMS = new WAAMorningStar();
+                    this.audioManager = this.WAAMS;
+    
+                    // Display the audio subsystem button
+                    this.ui.setVisible("subsys", true);
+                    this.ui.setValue ({elementID: "subsys", value: 1});
+    
+                    this.request = new XMLHttpRequest();
+                    this.request.open("GET", "impulse-responses/matrix-reverb1.wav", true);
+                    this.request.responseType = "arraybuffer";
+    
+                    var convoOnload = function() {
+                        console.log ("convoOnload");
+                        this.WAAMS.setConvoBuffer (this.request.response);
+                        this.afterAudio();
+                    }
+                    this.audioOk = true;
+                    this.audioType = 'waa';
+                    
+                    this.message.innerHTML = "Loading impulse response waveform...";
+                    this.request.onload = convoOnload.bind(MORNINGSTAR);
+                    this.request.send();
                 }
-                
-                this.message.innerHTML = "Loading impulse response waveform...";
-                this.request.onload = convoOnload.bind(MORNINGSTAR);
-                this.request.send();
-
+                catch (err) {
+                        console.log ("Catched an exception trying to load Web Audio API: ", err, " Audio could be not loaded: ", err.description);
+                        this.audioOk = false;
+                };
             }
 
-            else {
+            if ((this.audioOk === false) && !!(window.Audio)) {
+                // Web audio API was unsuccessful
                 try {
                     this.ADNonDescript = new AudioDataNonDescript();
                     this.ADNonDescript.init({sampleRate: 44100});
                     this.ADNonDescript.setBypass (false);
                     this.audioManager = this.ADNonDescript;
+                    this.audioOk = true;
+                    this.audioType = 'moz';
                 }
                 catch (err) {
                     console.log ("Catched an exception trying to load Mozilla Audio API: ", err, " Audio could be not loaded: ", err.description);
@@ -1191,7 +1200,7 @@ var MORNINGSTAR = {
 
         MORNINGSTAR.afterAudio = function () {
 
-            if (this.is_chrome) {
+            if (this.audioType === 'waa') {
             try {
                     this.WAAMS.init();
                     this.WAAMS.setBypass (false);   
@@ -1199,6 +1208,7 @@ var MORNINGSTAR = {
                 catch (err) {
                     console.log ("Catched an exception trying to load Web Audio API: ", err, " Audio could be not loaded: ", err.description);
                     this.audioOk = false;
+                    this.audioType = null;
                 }
             }
 
@@ -1377,11 +1387,8 @@ var MORNINGSTAR = {
         MORNINGSTAR.init = function () {
             /* INIT */
             this.plugin_canvas = document.getElementById("plugin");
-            var CWrapper = K2WRAPPER.createWrapper("CANVAS_WRAPPER",
-                                                        {canvas: this.plugin_canvas}
-                                                        );
-
-            this.ui = new UI (this.plugin_canvas, CWrapper, {breakOnFirstEvent: true});
+            
+            this.ui = new K2.UI ({type: 'CANVAS2D', target: this.plugin_canvas}, {'breakOnFirstEvent': true});
 
             var imageResources = [];
             var mulArgs = {multipleImages: [],
